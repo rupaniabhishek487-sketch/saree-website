@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 25.2.3.2 (Linux)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="00:00:00"/>
+	<style type="text/css">
+		@page { size: 8.27in 11.69in; margin: 0.79in }
+		p { margin-bottom: 0.1in; line-height: 115%; background: transparent }
+		pre { font-size: 10pt; font-family: "Liberation Mono", monospace; background: transparent }
+	</style>
+</head>
+<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Admin Dashboard - Narendra Sarees&lt;/title&gt;
+    &lt;link href=&quot;https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&amp;family=Poppins:wght@400;600&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;
+&lt;/head&gt;
+&lt;body class=&quot;admin-body fade-in&quot;&gt;
+    &lt;div class=&quot;admin-container&quot;&gt;
+        &lt;aside class=&quot;admin-sidebar&quot;&gt;
+            &lt;h1 class=&quot;admin-logo&quot;&gt;Admin Panel&lt;/h1&gt;
+            &lt;nav class=&quot;admin-nav&quot;&gt;
+                &lt;a href=&quot;#dashboard&quot; class=&quot;admin-nav-link active&quot;&gt;Dashboard&lt;/a&gt;
+                &lt;a href=&quot;#add-saree&quot; class=&quot;admin-nav-link&quot;&gt;Add Saree&lt;/a&gt;
+                &lt;a href=&quot;#register-party&quot; class=&quot;admin-nav-link&quot;&gt;Register New Party&lt;/a&gt;
+                &lt;a href=&quot;#view-parties&quot; class=&quot;admin-nav-link&quot;&gt;View All Parties&lt;/a&gt;
+                &lt;a href=&quot;#view-orders&quot; class=&quot;admin-nav-link&quot;&gt;View Orders&lt;/a&gt;
+                &lt;a href=&quot;#&quot; id=&quot;logout-btn&quot; class=&quot;admin-nav-link&quot;&gt;Logout&lt;/a&gt;
+            &lt;/nav&gt;
+        &lt;/aside&gt;
+        &lt;main class=&quot;admin-main-content&quot;&gt;
+            &lt;!-- Dashboard Section --&gt;
+            &lt;section id=&quot;dashboard&quot; class=&quot;admin-section&quot;&gt;
+                &lt;h2&gt;Dashboard Overview&lt;/h2&gt;
+                &lt;div class=&quot;dashboard-stats&quot;&gt;
+                    &lt;div class=&quot;stat-card&quot;&gt;&lt;h3&gt;Total Sarees&lt;/h3&gt;&lt;p&gt;5&lt;/p&gt;&lt;/div&gt;
+                    &lt;div class=&quot;stat-card&quot;&gt;&lt;h3&gt;Total Parties&lt;/h3&gt;&lt;p id=&quot;total-parties-stat&quot;&gt;0&lt;/p&gt;&lt;/div&gt;
+                    &lt;div class=&quot;stat-card&quot;&gt;&lt;h3&gt;Total Orders&lt;/h3&gt;&lt;p id=&quot;total-orders-stat&quot;&gt;0&lt;/p&gt;&lt;/div&gt;
+                &lt;/div&gt;
+                &lt;h3&gt;All Sarees&lt;/h3&gt;
+                &lt;div class=&quot;table-container&quot;&gt;
+                    &lt;table class=&quot;admin-table&quot;&gt;
+                        &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Saree Name&lt;/th&gt;&lt;th&gt;Category&lt;/th&gt;&lt;th&gt;Price&lt;/th&gt;&lt;th&gt;Weaver Name&lt;/th&gt;&lt;th&gt;Date Posted&lt;/th&gt;&lt;th&gt;Actions&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+                        &lt;tbody id=&quot;all-sarees-table-body&quot;&gt;&lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/section&gt;
+            
+            &lt;!-- Add Saree Section --&gt;
+            &lt;section id=&quot;add-saree&quot; class=&quot;admin-section&quot; style=&quot;display:none;&quot;&gt;
+                &lt;h2&gt;Add New Saree&lt;/h2&gt;
+                &lt;!-- Add Saree Form --&gt;
+            &lt;/section&gt;
+
+            &lt;!-- Register Party Section --&gt;
+            &lt;section id=&quot;register-party&quot; class=&quot;admin-section&quot; style=&quot;display:none;&quot;&gt;
+                &lt;h2&gt;Register a New Wholesale Party&lt;/h2&gt;
+                &lt;form id=&quot;register-party-form&quot; class=&quot;admin-form&quot;&gt;
+                    &lt;div class=&quot;form-row&quot;&gt;
+                        &lt;div class=&quot;form-group&quot;&gt;&lt;label for=&quot;partyName&quot;&gt;Party Name&lt;/label&gt;&lt;input type=&quot;text&quot; id=&quot;partyName&quot; required&gt;&lt;/div&gt;
+                        &lt;div class=&quot;form-group&quot;&gt;&lt;label for=&quot;partyEmail&quot;&gt;Party Email&lt;/label&gt;&lt;input type=&quot;email&quot; id=&quot;partyEmail&quot; required&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;form-group&quot;&gt;&lt;label for=&quot;partyAddress&quot;&gt;Address&lt;/label&gt;&lt;textarea id=&quot;partyAddress&quot; rows=&quot;3&quot; required&gt;&lt;/textarea&gt;&lt;/div&gt;
+                    &lt;div class=&quot;form-row&quot;&gt;
+                        &lt;div class=&quot;form-group&quot;&gt;&lt;label for=&quot;partyGst&quot;&gt;GST Number&lt;/label&gt;&lt;input type=&quot;text&quot; id=&quot;partyGst&quot; required&gt;&lt;/div&gt;
+                        &lt;div class=&quot;form-group&quot;&gt;&lt;label for=&quot;partyPassword&quot;&gt;Set Password&lt;/label&gt;&lt;input type=&quot;password&quot; id=&quot;partyPassword&quot; required&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;button type=&quot;submit&quot; class=&quot;btn&quot;&gt;Register Party&lt;/button&gt;
+                    &lt;p id=&quot;register-party-status&quot; class=&quot;form-status-message&quot;&gt;&lt;/p&gt;
+                &lt;/form&gt;
+            &lt;/section&gt;
+            
+            &lt;!-- View Parties Section --&gt;
+            &lt;section id=&quot;view-parties&quot; class=&quot;admin-section&quot; style=&quot;display:none;&quot;&gt;
+                &lt;h2&gt;All Registered Parties&lt;/h2&gt;
+                &lt;div class=&quot;table-container&quot;&gt;
+                    &lt;table class=&quot;admin-table&quot;&gt;
+                        &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Party Name&lt;/th&gt;&lt;th&gt;Email&lt;/th&gt;&lt;th&gt;GST Number&lt;/th&gt;&lt;th&gt;Address&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+                        &lt;tbody id=&quot;all-parties-table-body&quot;&gt;&lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/section&gt;
+            
+            &lt;!-- View Orders Section --&gt;
+            &lt;section id=&quot;view-orders&quot; class=&quot;admin-section&quot; style=&quot;display:none;&quot;&gt;
+                &lt;h2&gt;All Submitted Orders&lt;/h2&gt;
+                &lt;div class=&quot;table-container&quot;&gt;
+                     &lt;button id=&quot;export-csv-btn&quot; class=&quot;btn&quot;&gt;Export as CSV&lt;/button&gt;
+                    &lt;table class=&quot;admin-table&quot;&gt;
+                        &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Order ID&lt;/th&gt;&lt;th&gt;Party Name&lt;/th&gt;&lt;th&gt;GST&lt;/th&gt;&lt;th&gt;Address&lt;/th&gt;&lt;th&gt;Items&lt;/th&gt;&lt;th&gt;Grand Total&lt;/th&gt;&lt;th&gt;Date&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+                        &lt;tbody id=&quot;admin-orders-table-body&quot;&gt;&lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/section&gt;
+
+        &lt;/main&gt;
+    &lt;/div&gt;
+
+    &lt;!-- Supabase JS Library --&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;&gt;&lt;/script&gt;
+    &lt;script type=&quot;module&quot; src=&quot;script.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</body>
+</html>

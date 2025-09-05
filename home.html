@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 25.2.3.2 (Linux)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="00:00:00"/>
+	<style type="text/css">
+		@page { size: 8.27in 11.69in; margin: 0.79in }
+		p { margin-bottom: 0.1in; line-height: 115%; background: transparent }
+		pre { font-size: 10pt; font-family: "Liberation Mono", monospace; background: transparent }
+	</style>
+</head>
+<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;title&gt;Home - Narendra Sarees Wholesale&lt;/title&gt;
+    &lt;link href=&quot;https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&amp;family=Poppins:wght@400;600&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css&quot;&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;
+    &lt;style&gt;
+        .banner {
+            background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body class=&quot;fade-in&quot;&gt;
+
+    &lt;!-- Header &amp; Navbar --&gt;
+    &lt;header class=&quot;sticky-nav&quot;&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;div class=&quot;navbar&quot;&gt;
+                &lt;a href=&quot;home.html&quot; class=&quot;logo&quot;&gt;Narendra Sarees Wholesale&lt;/a&gt;
+                &lt;nav&gt;
+                    &lt;ul class=&quot;nav-links&quot;&gt;
+                        &lt;li&gt;&lt;a href=&quot;home.html&quot; class=&quot;active&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                        &lt;li&gt;&lt;a href=&quot;#collection&quot;&gt;Collection&lt;/a&gt;&lt;/li&gt;
+                        &lt;li&gt;&lt;a href=&quot;orders.html&quot;&gt;My Orders&lt;/a&gt;&lt;/li&gt;
+                        &lt;li&gt;&lt;a href=&quot;#&quot; id=&quot;logout-btn&quot;&gt;Logout&lt;/a&gt;&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/nav&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/header&gt;
+
+    &lt;!-- Main Content --&gt;
+    &lt;main&gt;
+        &lt;!-- Banner Section --&gt;
+        &lt;section class=&quot;banner&quot;&gt;
+            &lt;div class=&quot;container&quot;&gt;
+                &lt;h1 id=&quot;welcome-message&quot;&gt;New Arrivals in Sarees&lt;/h1&gt;
+                &lt;p&gt;Discover the finest collection of wholesale sarees, crafted with tradition and elegance.&lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/section&gt;
+        
+        &lt;!-- Categories Section --&gt;
+        &lt;section id=&quot;categories&quot; class=&quot;categories-section&quot;&gt;
+            &lt;div class=&quot;container&quot;&gt;
+                &lt;h2&gt;Shop by Category&lt;/h2&gt;
+                &lt;div class=&quot;category-grid&quot; id=&quot;category-grid&quot;&gt;
+                     &lt;!-- Category links dynamically inserted --&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/section&gt;
+
+        &lt;!-- Collection Section --&gt;
+        &lt;section id=&quot;collection&quot; class=&quot;product-section&quot;&gt;
+            &lt;div class=&quot;container&quot;&gt;
+                &lt;h2&gt;Our Collection&lt;/h2&gt;
+                &lt;div class=&quot;filter-sort-controls&quot;&gt;
+                    &lt;div class=&quot;search-bar-container&quot;&gt;
+                        &lt;i class=&quot;fas fa-search&quot;&gt;&lt;/i&gt;
+                        &lt;input type=&quot;text&quot; id=&quot;search-bar&quot; placeholder=&quot;Search by Saree Name...&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;sort-container&quot;&gt;
+                         &lt;label for=&quot;sort-options&quot;&gt;Sort by:&lt;/label&gt;
+                        &lt;select id=&quot;sort-options&quot;&gt;
+                            &lt;option value=&quot;date-desc&quot;&gt;Latest Postings&lt;/option&gt;
+                            &lt;option value=&quot;price-asc&quot;&gt;Price: Low to High&lt;/option&gt;
+                            &lt;option value=&quot;price-desc&quot;&gt;Price: High to Low&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;product-grid&quot; id=&quot;product-grid&quot;&gt;
+                    &lt;!-- Product cards dynamically inserted --&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/section&gt;
+    &lt;/main&gt;
+
+    &lt;!-- Footer --&gt;
+    &lt;footer&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;p&gt;&amp;copy; 2025 Narendra Sarees Wholesale. All Rights Reserved.&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/footer&gt;
+
+    &lt;!-- Scroll to Top Button --&gt;
+    &lt;button id=&quot;scrollToTopBtn&quot; title=&quot;Go to top&quot;&gt;↑&lt;/button&gt;
+
+    &lt;!-- Supabase JS Library --&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;&gt;&lt;/script&gt;
+    &lt;script type=&quot;module&quot; src=&quot;script.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</body>
+</html>
