@@ -2,7 +2,6 @@
 const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
 
-// CORRECTED INITIALIZATION: The 'self' prefix was incorrect.
 const { createClient } = window.supabase;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -19,50 +18,46 @@ const DB = {
     orders: JSON.parse(localStorage.getItem('userOrders')) || {},
 };
 
-// --- Page Routing ---
-// Determines which functions to run based on the current HTML file.
-async function routePage() {
+// --- Main Entry Point ---
+// This new structure is more robust. It waits for the DOM to be fully loaded
+// before attempting to run any page-specific logic, preventing race conditions.
+document.addEventListener('DOMContentLoaded', () => {
     const page = window.location.pathname.split("/").pop();
+
+    // Attach listeners that are present on multiple pages
     setupUniversalListeners();
 
-    // Pages that DO NOT require a logged-in user
+    // Run logic based on which page is currently loaded
     switch (page) {
         case 'index.html':
         case '':
             initLoginPage();
-            return;
+            break;
         case 'admin.html':
             initAdminLoginPage();
-            return;
-    }
-
-    // Pages that DO require a logged-in user
-    // We check for a session first.
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        // If no session, redirect to login, except for the admin dashboard which uses its own check
-        if (page !== 'admin-dashboard.html') {
-             window.location.href = 'index.html';
-        } else {
-             initAdminDashboard(); // Allow admin dashboard to run its own check
-        }
-        return;
-    }
-
-    // If a session exists, proceed to the correct page logic.
-    switch (page) {
+            break;
         case 'home.html':
-            initHomePage(session.user);
+            securePage(initHomePage);
             break;
         case 'product.html':
-            initProductPage(session.user);
+            securePage(initProductPage);
             break;
         case 'orders.html':
-            initOrdersPage(session.user);
+            securePage(initOrdersPage);
             break;
         case 'admin-dashboard.html':
             initAdminDashboard();
             break;
+    }
+});
+
+// --- Security & Page Guards ---
+async function securePage(pageFunction) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+        window.location.href = 'index.html';
+    } else {
+        pageFunction(session.user);
     }
 }
 
@@ -180,10 +175,7 @@ function initAdminDashboard() {
         link.addEventListener('click', (e) => {
             e.preventDefault(); 
             const targetId = e.target.getAttribute('href');
-            if (e.target.id === 'logout-btn') {
-                 // The universal listener already handles logout, this prevents errors
-                 return;
-            }
+             if (e.target.id === 'logout-btn') { return; } // The universal listener handles this
             if(targetId === '#') { return; };
             navLinks.forEach(l => l.classList.remove('active')); e.target.classList.add('active');
             sections.forEach(sec => sec.style.display = ('#' + sec.id === targetId) ? 'block' : 'none');
@@ -425,9 +417,4 @@ function initProductPage(user) {
             <div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${rs.price.toLocaleString('en-IN')}</p></div>
         </div>`).join('');
 }
-
-
-// --- Main Entry Point ---
-// This runs when the DOM is fully loaded.
-document.addEventListener('DOMContentLoaded', routePage);
 
