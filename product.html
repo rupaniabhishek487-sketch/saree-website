@@ -1,77 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-	<title></title>
-	<meta name="generator" content="LibreOffice 25.2.3.2 (Linux)"/>
-	<meta name="created" content="00:00:00"/>
-	<meta name="changed" content="00:00:00"/>
-	<style type="text/css">
-		@page { size: 8.27in 11.69in; margin: 0.79in }
-		p { margin-bottom: 0.1in; line-height: 115%; background: transparent }
-		pre { font-size: 10pt; font-family: "Liberation Mono", monospace; background: transparent }
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - Narendra Sarees Wholesale</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre>&lt;!DOCTYPE html&gt;
-&lt;html lang=&quot;en&quot;&gt;
-&lt;head&gt;
-    &lt;meta charset=&quot;UTF-8&quot;&gt;
-    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-    &lt;title&gt;Product Details - Narendra Sarees Wholesale&lt;/title&gt;
-    &lt;link href=&quot;https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&amp;family=Poppins:wght@400;600&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
-    &lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;
-&lt;/head&gt;
-&lt;body class=&quot;fade-in&quot;&gt;
-    &lt;!-- Header &amp; Navbar --&gt;
-    &lt;header class=&quot;sticky-nav&quot;&gt;
-        &lt;div class=&quot;container&quot;&gt;
-            &lt;div class=&quot;navbar&quot;&gt;
-                &lt;a href=&quot;home.html&quot; class=&quot;logo&quot;&gt;Narendra Sarees Wholesale&lt;/a&gt;
-                &lt;nav&gt;
-                    &lt;ul class=&quot;nav-links&quot;&gt;
-                        &lt;li&gt;&lt;a href=&quot;home.html&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
-                        &lt;li&gt;&lt;a href=&quot;home.html#collection&quot;&gt;Collection&lt;/a&gt;&lt;/li&gt;
-                        &lt;li&gt;&lt;a href=&quot;orders.html&quot;&gt;My Orders&lt;/a&gt;&lt;/li&gt;
-                        &lt;li&gt;&lt;a href=&quot;#&quot; id=&quot;logout-btn&quot;&gt;Logout&lt;/a&gt;&lt;/li&gt;
-                    &lt;/ul&gt;
-                &lt;/nav&gt;
-            &lt;/div&gt;
-        &lt;/div&gt;
-    &lt;/header&gt;
+<body class="fade-in">
+    <!-- Header & Navbar -->
+    <header class="sticky-nav">
+        <div class="container">
+            <div class="navbar">
+                <a href="home.html" class="logo">Narendra Sarees Wholesale</a>
+                <nav>
+                    <ul class="nav-links">
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="home.html#collection">Collection</a></li>
+                        <li><a href="orders.html">My Orders</a></li>
+                        <li><a href="#" id="logout-btn">Logout</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
 
-    &lt;!-- Main Product Section --&gt;
-    &lt;main&gt;
-        &lt;section class=&quot;product-detail-section&quot;&gt;
-            &lt;div class=&quot;container&quot; id=&quot;product-detail-container&quot;&gt;
-                &lt;!-- Product details will be dynamically injected here --&gt;
-            &lt;/div&gt;
-        &lt;/section&gt;
+    <!-- Main Product Section -->
+    <main>
+        <section class="product-detail-section">
+            <div class="container" id="product-detail-container">
+                <!-- Product details will be dynamically injected here -->
+            </div>
+        </section>
         
-        &lt;!-- Related Products Section --&gt;
-        &lt;section class=&quot;related-products-section&quot;&gt;
-            &lt;div class=&quot;container&quot;&gt;
-                &lt;h2&gt;Related Sarees&lt;/h2&gt;
-                &lt;div class=&quot;product-grid&quot; id=&quot;related-products-grid&quot;&gt;
-                    &lt;!-- Related product cards will be dynamically injected here --&gt;
-                &lt;/div&gt;
-            &lt;/div&gt;
-        &lt;/section&gt;
-    &lt;/main&gt;
+        <!-- Related Products Section -->
+        <section class="related-products-section">
+            <div class="container">
+                <h2>Related Sarees</h2>
+                <div class="product-grid" id="related-products-grid">
+                    <!-- Related product cards will be dynamically injected here -->
+                </div>
+            </div>
+        </section>
+    </main>
 
-    &lt;!-- Footer --&gt;
-    &lt;footer&gt;
-        &lt;div class=&quot;container&quot;&gt;
-            &lt;p&gt;&amp;copy; 2025 Narendra Sarees Wholesale. All Rights Reserved.&lt;/p&gt;
-        &lt;/div&gt;
-    &lt;/footer&gt;
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Narendra Sarees Wholesale. All Rights Reserved.</p>
+        </div>
+    </footer>
 
-    &lt;!-- Scroll to Top Button --&gt;
-    &lt;button id=&quot;scrollToTopBtn&quot; title=&quot;Go to top&quot;&gt;↑&lt;/button&gt;
+    <!-- Scroll to Top Button -->
+    <button id="scrollToTopBtn" title="Go to top">↑</button>
 
-    &lt;!-- Supabase JS Library --&gt;
-    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2&quot;&gt;&lt;/script&gt;
-    &lt;script type=&quot;module&quot; src=&quot;script.js&quot;&gt;&lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;</pre>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
