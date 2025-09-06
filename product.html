@@ -9,17 +9,17 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="fade-in">
-    <!-- Header & Navbar -->
+    <!-- Header & Navbar (for Desktop) -->
     <header class="sticky-nav">
         <div class="container">
             <div class="navbar">
                 <a href="home.html" class="logo">Narendra Sarees Wholesale</a>
-                <nav>
+                <nav class="desktop-nav">
                     <ul class="nav-links">
                         <li><a href="home.html">Home</a></li>
                         <li><a href="home.html#collection">Collection</a></li>
                         <li><a href="orders.html">My Orders</a></li>
-                        <li><a href="#" id="logout-btn">Logout</a></li>
+                        <li><a href="#" id="logout-btn-desktop">Logout</a></li>
                     </ul>
                 </nav>
             </div>
@@ -30,8 +30,7 @@
     <main>
         <section class="product-detail-section">
             <div class="container" id="product-detail-container">
-                <!-- Product details will be dynamically injected here by script.js -->
-                <!-- This will now be a two-column layout for image and details -->
+                <!-- Product details will be dynamically injected here -->
             </div>
         </section>
         
@@ -45,6 +44,26 @@
             </div>
         </section>
     </main>
+
+    <!-- Mobile Navigation Bar -->
+    <nav class="mobile-nav">
+        <a href="home.html" class="mobile-nav-link">
+            <i class="fas fa-house"></i>
+            <span>Home</span>
+        </a>
+        <a href="home.html#collection" class="mobile-nav-link">
+            <i class="fas fa-grip"></i>
+            <span>Collection</span>
+        </a>
+        <a href="orders.html" class="mobile-nav-link">
+            <i class="fas fa-file-lines"></i>
+            <span>Orders</span>
+        </a>
+        <a href="#" id="logout-btn-mobile" class="mobile-nav-link">
+            <i class="fas fa-right-from-bracket"></i>
+            <span>Logout</span>
+        </a>
+    </nav>
 
     <!-- Footer -->
     <footer>
