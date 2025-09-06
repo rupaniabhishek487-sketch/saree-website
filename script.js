@@ -40,8 +40,6 @@ function setupUniversalListeners() {
         window.onscroll = () => { scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "block" : "none"; };
         scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
-    
-    // Mobile Navigation Toggle
     const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
     const mainNav = document.querySelector('.main-nav');
     if (mobileNavToggle && mainNav) {
@@ -137,11 +135,8 @@ async function initAdminDashboard() {
     document.getElementById('edit-saree-form').addEventListener('submit', handleUpdateSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
-    
-    // CORRECTED: Event listeners now call the robust addDynamicInput function
     document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container', 'url', 'https://example.com/image.jpg'));
     document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container', 'text', 'e.g., Maroon'));
-    
     document.getElementById('all-sarees-table-body').addEventListener('click', handleSareeTableClick);
     document.getElementById('all-parties-table-body').addEventListener('click', handlePartyTableClick);
     document.getElementById('admin-orders-table-body').addEventListener('change', handleOrderStatusChange);
@@ -151,7 +146,6 @@ async function initAdminDashboard() {
     renderAdminOrdersTable();
 }
 
-// CORRECTED: This function is now more robust and doesn't rely on copying other inputs.
 function addDynamicInput(containerId, inputType, placeholder) {
     const container = document.getElementById(containerId);
     const row = document.createElement('div');
@@ -257,10 +251,7 @@ async function handleOrderStatusChange(e) {
 
 function openEditSareeModal(sareeId) {
     const saree = state.sarees.find(s => s.id === parseInt(sareeId));
-    if (!saree) {
-        console.error("Saree not found for ID:", sareeId);
-        return;
-    }
+    if (!saree) { return; }
     const modal = document.getElementById('edit-saree-modal');
     document.getElementById('editSareeId').value = saree.id;
     document.getElementById('editSareeName').value = saree.name;
@@ -447,26 +438,82 @@ function initProductPage(user) {
     const saree = state.sarees.find(s => s.id === sareeId);
     if (!saree) { document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; return; }
     const container = document.getElementById('product-detail-container');
-    container.innerHTML = `<div class="product-detail-grid"><div class="product-image-gallery"><div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image"></div><div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}</div></div><div class="product-details-content"><h1>${saree.name}</h1><p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p><p class="description">${saree.description || ''}</p><div class="options-group"><label>Color</label><div class="color-swatches">${saree.colors.map((color, index) => `<div class="color-swatch" data-color="${color}" title="${color}" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>`).join('')}</div></div><div class="options-group"><label>Quantity</label><div class="quantity-selector"><button id="quantity-minus">−</button><input type="number" id="quantity-input" value="1" min="1"><button id="quantity-plus">+</button></div></div><button class="btn" id="add-to-order-btn"><i class="fas fa-shopping-bag"></i> Add to Order</button></div></div>`;
-    const mainImage = document.getElementById('main-saree-image');
-    const thumbnails = document.querySelectorAll('.thumbnails img');
-    thumbnails.forEach(thumb => {
-        thumb.addEventListener('click', () => { mainImage.src = thumb.src; thumbnails.forEach(t => t.classList.remove('active')); thumb.classList.add('active'); });
+    
+    const colorRowsHTML = saree.colors.map(color => `
+        <div class="color-order-row">
+            <div class="color-info">
+                <div class="color-swatch-display" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>
+                <span>${color}</span>
+            </div>
+            <div class="quantity-selector">
+                <button class="quantity-btn minus" data-color="${color}">−</button>
+                <input type="number" class="color-quantity-input" data-color="${color}" value="0" min="0" readonly>
+                <button class="quantity-btn plus" data-color="${color}">+</button>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="product-detail-grid">
+            <div class="product-image-gallery">
+                <div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image"></div>
+                <div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}</div>
+            </div>
+            <div class="product-details-content">
+                <h1>${saree.name}</h1>
+                <p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p>
+                <p class="description">${saree.description || ''}</p>
+                <div id="multi-order-form">
+                    <label class="multi-order-form-title">Select Quantities by Color</label>
+                    ${colorRowsHTML}
+                </div>
+                <button class="btn" id="add-all-to-order-btn"><i class="fas fa-shopping-bag"></i> Add All to Order</button>
+            </div>
+        </div>`;
+
+    // --- Add Event Listeners ---
+    document.querySelectorAll('.thumbnails img').forEach(thumb => {
+        thumb.addEventListener('click', () => {
+            document.getElementById('main-saree-image').src = thumb.src;
+            document.querySelectorAll('.thumbnails img').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        });
     });
-    const colorSwatches = document.querySelectorAll('.color-swatch');
-    if (colorSwatches.length > 0) { colorSwatches[0].classList.add('active'); }
-    colorSwatches.forEach(swatch => { swatch.addEventListener('click', () => { colorSwatches.forEach(s => s.classList.remove('active')); swatch.classList.add('active'); }); });
-    const quantityInput = document.getElementById('quantity-input');
-    document.getElementById('quantity-minus').addEventListener('click', () => { let currentValue = parseInt(quantityInput.value); if (currentValue > 1) quantityInput.value = currentValue - 1; });
-    document.getElementById('quantity-plus').addEventListener('click', () => { quantityInput.value = parseInt(quantityInput.value) + 1; });
-    document.getElementById('add-to-order-btn').addEventListener('click', () => {
-        const selectedColorEl = document.querySelector('.color-swatch.active');
-        if (!selectedColorEl) { alert('Please select a color.'); return; }
-        const selectedColor = selectedColorEl.dataset.color;
-        const quantity = parseInt(quantityInput.value);
-        addToOrder(user, saree.id, selectedColor, quantity);
-        alert(`${quantity} x ${saree.name} (${selectedColor}) added to your order!`);
+
+    document.querySelectorAll('.quantity-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const color = e.target.dataset.color;
+            const input = document.querySelector(`.color-quantity-input[data-color="${color}"]`);
+            let currentValue = parseInt(input.value);
+            if (e.target.classList.contains('plus')) {
+                input.value = currentValue + 1;
+            } else if (e.target.classList.contains('minus') && currentValue > 0) {
+                input.value = currentValue - 1;
+            }
+        });
     });
+
+    document.getElementById('add-all-to-order-btn').addEventListener('click', () => {
+        const inputs = document.querySelectorAll('.color-quantity-input');
+        let itemsAdded = [];
+        inputs.forEach(input => {
+            const quantity = parseInt(input.value);
+            if (quantity > 0) {
+                const color = input.dataset.color;
+                addToOrder(user, saree.id, color, quantity);
+                itemsAdded.push(`${quantity} x ${color}`);
+            }
+            input.value = 0; // Reset after adding
+        });
+
+        if (itemsAdded.length > 0) {
+            alert(`Added to your order:\n${itemsAdded.join('\n')}`);
+        } else {
+            alert('Please select a quantity for at least one color.');
+        }
+    });
+
+    // Render related products
     const relatedGrid = document.getElementById('related-products-grid');
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
     relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
