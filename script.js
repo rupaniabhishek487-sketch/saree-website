@@ -54,6 +54,11 @@ async function handleLogout(e) {
 function initLoginPage() { 
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
+        const savedEmail = localStorage.getItem('rememberedEmail');
+        if (savedEmail) {
+            document.getElementById('username').value = savedEmail;
+            document.getElementById('remember-me').checked = true;
+        }
         loginForm.addEventListener('submit', handleLogin);
     }
 }
@@ -61,8 +66,16 @@ async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+    const rememberMe = document.getElementById('remember-me').checked;
     const errorEl = document.getElementById('login-error');
     errorEl.textContent = 'Logging in...';
+
+    if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+    } else {
+        localStorage.removeItem('rememberedEmail');
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { errorEl.textContent = "Invalid email or password."; } 
     else { window.location.href = 'home.html'; }
@@ -385,4 +398,3 @@ function initProductPage(user) {
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
     relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
 }
-
