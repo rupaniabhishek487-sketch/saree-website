@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Narendra Sarees</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.1">
 </head>
 <body class="admin-body fade-in">
     <div class="admin-container">
@@ -21,7 +21,6 @@
             </nav>
         </aside>
         <main class="admin-main-content">
-            <!-- Dashboard Section -->
             <section id="dashboard" class="admin-section">
                 <h2>Dashboard Overview</h2>
                 <div class="dashboard-stats">
@@ -37,8 +36,6 @@
                     </table>
                 </div>
             </section>
-            
-            <!-- Add Saree Section -->
             <section id="add-saree" class="admin-section" style="display:none;">
                 <h2>Add New Saree</h2>
                 <form id="add-saree-form" class="admin-form">
@@ -65,8 +62,6 @@
                     <p id="add-saree-status" class="form-status-message"></p>
                 </form>
             </section>
-
-            <!-- Register Party Section -->
             <section id="register-party" class="admin-section" style="display:none;">
                 <h2>Register a New Wholesale Party</h2>
                 <form id="register-party-form" class="admin-form">
@@ -83,8 +78,6 @@
                     <p id="register-party-status" class="form-status-message"></p>
                 </form>
             </section>
-            
-            <!-- View Parties Section -->
             <section id="view-parties" class="admin-section" style="display:none;">
                 <h2>All Registered Parties</h2>
                 <div class="table-container">
@@ -94,8 +87,6 @@
                     </table>
                 </div>
             </section>
-            
-            <!-- View Orders Section -->
             <section id="view-orders" class="admin-section" style="display:none;">
                 <h2>All Submitted Orders</h2>
                 <div class="table-container">
@@ -108,8 +99,6 @@
             </section>
         </main>
     </div>
-
-    <!-- Edit Saree Modal -->
     <div id="edit-saree-modal" class="modal" style="display: none;">
         <div class="modal-content large">
             <span class="close-button">&times;</span>
@@ -130,9 +119,6 @@
             </form>
         </div>
     </div>
-
-
-    <!-- Confirmation Modal -->
     <div id="confirmation-modal-admin" class="modal" style="display: none;">
         <div class="modal-content">
             <h2 id="modal-title">Confirm Deletion</h2>
@@ -143,8 +129,7 @@
             </div>
         </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="script.js?v=1.1"></script>
 </body>
 </html>
