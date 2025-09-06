@@ -93,18 +93,19 @@ body {
     background-color: var(--accent-color);
     color: white;
 }
-.delete-btn {
-    background-color: var(--danger-color);
-    color: white;
-    border: none;
-    padding: 8px 12px;
+.action-btn {
+    background: none;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
+    padding: 8px 12px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    margin-right: 5px;
 }
-.delete-btn:hover {
-    background-color: #c82333;
-}
+.action-btn.edit:hover { background-color: #f0f0f0; }
+.action-btn.delete { color: var(--danger-color); }
+.action-btn.delete:hover { background-color: var(--danger-color); color: white; }
+
 
 /* --- Header & Navigation --- */
 .sticky-nav {
@@ -271,7 +272,7 @@ body {
 .stat-card p { margin: 0; font-size: 2rem; font-weight: 600; }
 .table-container { overflow-x: auto; }
 .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-.admin-table th, .admin-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
+.admin-table th, .admin-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle;}
 .admin-table th { background-color: #f8f9fa; font-weight: 600; }
 .admin-form { max-width: 800px; }
 .form-row { display: flex; gap: 20px; margin-bottom: 20px; }
@@ -284,6 +285,7 @@ body {
 .form-status-message { margin-top: 15px; padding: 10px; border-radius: var(--border-radius); font-weight: 500; display: none; }
 .form-status-message.success { display: block; background-color: #d4edda; color: #155724; }
 .form-status-message.error { display: block; background-color: #f8d7da; color: #721c24; }
+.order-status-select { padding: 8px; border-radius: var(--border-radius); border: 1px solid var(--border-color); font-family: var(--font-secondary); }
 
 /* --- Orders Page & Modal --- */
 .orders-section { padding: 60px 0; }
@@ -296,10 +298,25 @@ body {
 .order-total { text-align: right; margin-top: 20px; font-size: 1.5rem; font-weight: bold; }
 .empty-cart-message { text-align: center; font-size: 1.2rem; color: var(--secondary-color); padding: 40px; }
 .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); animation: fadeInAnimation 0.3s; }
-.modal-content { background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: var(--border-radius); text-align: center; }
+.modal-content { background-color: #fefefe; margin: 10% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: var(--border-radius); text-align: center; }
+.modal-content.large { max-width: 800px; }
 .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
 .close-button:hover, .close-button:focus { color: black; }
 .modal-actions { margin-top: 20px; display: flex; justify-content: center; gap: 15px; }
+
+/* Status Badges */
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: white;
+}
+.status-pending { background-color: #ffc107; color: #333;}
+.status-processing { background-color: #17a2b8; }
+.status-shipped { background-color: #28a745; }
+.status-completed { background-color: #6c757d; }
 
 /* --- Universal Elements (Footer, etc.) --- */
 footer { background-color: #f4f4f4; text-align: center; padding: 20px 0; margin-top: 60px; font-size: 0.9rem; color: var(--secondary-color); }
