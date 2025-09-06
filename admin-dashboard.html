@@ -51,29 +51,16 @@
                         <div class="form-group"><label for="weaverName">Weaver Name (Admin only)</label><input type="text" id="weaverName" required></div>
                     </div>
                     <div class="form-group"><label for="sareeDescription">Description (Optional)</label><textarea id="sareeDescription" rows="4"></textarea></div>
-                    
-                    <!-- Dynamic Image Links -->
                     <div class="form-group">
                         <label>Image Links</label>
-                        <div id="image-links-container">
-                            <div class="dynamic-input-row">
-                               <input type="url" class="image-link-input" placeholder="https://example.com/image1.jpg" required>
-                            </div>
-                        </div>
+                        <div id="image-links-container"><div class="dynamic-input-row"><input type="url" placeholder="https://example.com/image1.jpg" required></div></div>
                         <button type="button" id="add-image-link-btn" class="btn-add-more">+ Add Another Image</button>
                     </div>
-
-                    <!-- Dynamic Colors -->
                      <div class="form-group">
                         <label>Available Colors</label>
-                        <div id="colors-container">
-                             <div class="dynamic-input-row">
-                                <input type="text" class="color-input" placeholder="e.g., Royal Blue" required>
-                            </div>
-                        </div>
+                        <div id="colors-container"><div class="dynamic-input-row"><input type="text" placeholder="e.g., Royal Blue" required></div></div>
                         <button type="button" id="add-color-btn" class="btn-add-more">+ Add Another Color</button>
                     </div>
-
                     <button type="submit" class="btn">Add Saree to Catalog</button>
                     <p id="add-saree-status" class="form-status-message"></p>
                 </form>
@@ -102,7 +89,7 @@
                 <h2>All Registered Parties</h2>
                 <div class="table-container">
                     <table class="admin-table">
-                        <thead><tr><th>Party Name</th><th>Email</th><th>GST Number</th><th>Address</th></tr></thead>
+                        <thead><tr><th>Party Name</th><th>Email</th><th>GST Number</th><th>Address</th><th>Actions</th></tr></thead>
                         <tbody id="all-parties-table-body"></tbody>
                     </table>
                 </div>
@@ -119,8 +106,19 @@
                     </table>
                 </div>
             </section>
-
         </main>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal-admin" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="modal-title">Confirm Deletion</h2>
+            <p id="modal-message">Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="modal-confirm-btn" class="btn btn-danger">Confirm</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
