@@ -6,9 +6,8 @@ const { createClient } = window.supabase;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- Local State Management ---
-// Orders are still managed locally for simplicity in this version.
 let state = {
-    sarees: [], // This will be populated from Supabase
+    sarees: [],
     orders: JSON.parse(localStorage.getItem('userOrders')) || {},
 };
 
@@ -33,7 +32,7 @@ async function securePage(pageFunction) {
     if (!session) {
         window.location.href = 'index.html';
     } else {
-        await loadSareesFromDB(); // Ensure sarees are loaded for all secure pages
+        await loadSareesFromDB();
         pageFunction(session.user);
     }
 }
@@ -99,7 +98,7 @@ async function initHomePage(user) {
     const categoryGrid = document.getElementById('category-grid');
     if (categoryGrid) { categoryGrid.innerHTML = categories.map(cat => `<a href="#" class="category-link" data-category="${cat}">${cat}</a>`).join(''); }
     
-    updateProductGrid(); // Initial render
+    updateProductGrid();
 }
 
 function updateProductGrid() {
@@ -110,7 +109,7 @@ function updateProductGrid() {
     switch (sortValue) {
         case 'price-asc': filteredSarees.sort((a, b) => a.price - b.price); break;
         case 'price-desc': filteredSarees.sort((a, b) => b.price - a.price); break;
-        default: break; // Already sorted by date from DB
+        default: break;
     }
     renderSarees(filteredSarees);
 }
@@ -131,7 +130,6 @@ function renderSarees(sarees) {
 async function initAdminDashboard() {
     if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
     
-    // Setup navigation
     const navLinks = document.querySelectorAll('.admin-nav-link');
     const sections = document.querySelectorAll('.admin-section');
     navLinks.forEach(link => {
@@ -145,16 +143,13 @@ async function initAdminDashboard() {
         });
     });
     
-    // Attach form listeners
     document.getElementById('add-saree-form').addEventListener('submit', handleAddSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
     
-    // Add Saree Form - dynamic inputs
     document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container', 'url', 'https://example.com/image.jpg'));
     document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container', 'text', 'e.g., Maroon'));
 
-    // Load and render all data for the dashboard
     await loadSareesFromDB();
     renderAllSareesTable();
     renderRegisteredPartiesTable();
@@ -185,8 +180,8 @@ async function handleAddSaree(e) {
     statusEl.textContent = 'Adding Saree...';
     statusEl.className = 'form-status-message';
 
-    const images = Array.from(document.querySelectorAll('#image-links-container input')).map(input => input.value);
-    const colors = Array.from(document.querySelectorAll('#colors-container input')).map(input => input.value);
+    const images = Array.from(document.querySelectorAll('#image-links-container .dynamic-input-row input')).map(input => input.value);
+    const colors = Array.from(document.querySelectorAll('#colors-container .dynamic-input-row input')).map(input => input.value);
 
     const newSaree = {
         name: document.getElementById('sareeName').value,
@@ -206,9 +201,8 @@ async function handleAddSaree(e) {
         statusEl.textContent = 'Saree added successfully!';
         statusEl.classList.add('success');
         e.target.reset();
-        // Clear dynamic fields
-        document.getElementById('image-links-container').innerHTML = '<input type="url" class="image-link-input" placeholder="https://example.com/image1.jpg" required>';
-        document.getElementById('colors-container').innerHTML = '<input type="text" class="color-input" placeholder="e.g., Royal Blue" required>';
+        document.getElementById('image-links-container').innerHTML = '<div class="dynamic-input-row"><input type="url" placeholder="https://example.com/image.jpg" required></div>';
+        document.getElementById('colors-container').innerHTML = '<div class="dynamic-input-row"><input type="text" placeholder="e.g., Maroon" required></div>';
         await loadSareesFromDB();
         renderAllSareesTable();
     }
@@ -302,6 +296,17 @@ async function exportOrdersToCSV() {
 async function initOrdersPage(user) {
     const { data } = await supabase.from('parties').select('*').eq('id', user.id).single();
     if (data) { document.getElementById('party-details-review').innerHTML = `<h3>Your details for this order:</h3><p><strong>Name:</strong> ${data.party_name}</p><p><strong>Address:</strong> ${data.address}</p><p><strong>GST No:</strong> ${data.gst_number}</p>`; }
+    
+    // CORRECTED: Setup modal listeners regardless of cart status
+    const modal = document.getElementById('confirmation-modal');
+    const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn');
+    const closeAndRedirect = () => {
+        modal.style.display = "none";
+        window.location.href = 'home.html';
+    };
+    closeButtons.forEach(btn => btn.onclick = closeAndRedirect);
+    window.onclick = event => { if (event.target == modal) closeAndRedirect(); };
+
     renderOrderTable(user);
 }
 
@@ -341,10 +346,6 @@ function renderOrderTable(user) {
     document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('change', e => updateOrderItemQuantity(user, e.target.dataset.index, parseInt(e.target.value))));
     document.querySelectorAll('.remove-item-btn').forEach(btn => btn.addEventListener('click', e => removeOrderItem(user, e.target.dataset.index)));
     document.getElementById('place-order-btn').addEventListener('click', () => placeOrder(user));
-    const modal = document.getElementById('confirmation-modal');
-    const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn');
-    closeButtons.forEach(btn => btn.onclick = () => { modal.style.display = "none"; window.location.href = 'home.html'; });
-    window.onclick = event => { if (event.target == modal) { modal.style.display = "none"; window.location.href = 'home.html'; } };
 }
 
 function updateOrderItemQuantity(user, index, quantity) { if (quantity > 0) { state.orders[user.id][index].quantity = quantity; localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); } }
