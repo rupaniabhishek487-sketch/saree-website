@@ -40,6 +40,18 @@ function setupUniversalListeners() {
         window.onscroll = () => { scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "block" : "none"; };
         scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
+    
+    // Mobile Navigation Toggle
+    const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+    const navLinks = document.querySelector('.nav-links');
+    if (mobileNavToggle && navLinks) {
+        mobileNavToggle.addEventListener('click', () => {
+            const isVisible = navLinks.getAttribute('data-visible') === 'true';
+            navLinks.setAttribute('data-visible', !isVisible);
+            mobileNavToggle.setAttribute('aria-expanded', !isVisible);
+            mobileNavToggle.querySelector('i').className = isVisible ? 'fas fa-bars' : 'fas fa-times';
+        });
+    }
 }
 
 // --- Auth Functions ---
@@ -221,13 +233,11 @@ async function handleOrderStatusChange(e) {
 }
 
 function openEditSareeModal(sareeId) {
-    // CORRECTED: Convert string ID from dataset to a number
     const saree = state.sarees.find(s => s.id === parseInt(sareeId));
     if (!saree) {
         console.error("Saree not found for ID:", sareeId);
         return;
     }
-
     const modal = document.getElementById('edit-saree-modal');
     document.getElementById('editSareeId').value = saree.id;
     document.getElementById('editSareeName').value = saree.name;
@@ -235,7 +245,6 @@ function openEditSareeModal(sareeId) {
     document.getElementById('editSareePrice').value = saree.price;
     document.getElementById('editWeaverName').value = saree.weaver_name;
     document.getElementById('editSareeDescription').value = saree.description || '';
-    
     modal.style.display = 'block';
     modal.querySelector('.close-button').onclick = () => modal.style.display = 'none';
     window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
@@ -246,30 +255,16 @@ async function handleUpdateSaree(e) {
     const statusEl = document.getElementById('edit-saree-status');
     statusEl.textContent = 'Saving...';
     statusEl.className = 'form-status-message';
-    
     const sareeId = document.getElementById('editSareeId').value;
-    const updatedSaree = {
-        name: document.getElementById('editSareeName').value,
-        category: document.getElementById('editSareeCategory').value,
-        price: Number(document.getElementById('editSareePrice').value),
-        weaver_name: document.getElementById('editWeaverName').value,
-        description: document.getElementById('editSareeDescription').value,
-    };
-
+    const updatedSaree = { name: document.getElementById('editSareeName').value, category: document.getElementById('editSareeCategory').value, price: Number(document.getElementById('editSareePrice').value), weaver_name: document.getElementById('editWeaverName').value, description: document.getElementById('editSareeDescription').value, };
     const { error } = await supabase.from('sarees').update(updatedSaree).eq('id', sareeId);
-    if (error) {
-        statusEl.textContent = `Error: ${error.message}`;
-        statusEl.classList.add('error');
-    } else {
+    if (error) { statusEl.textContent = `Error: ${error.message}`; statusEl.classList.add('error'); } 
+    else {
         statusEl.textContent = 'Changes saved successfully!';
         statusEl.classList.add('success');
         await loadSareesFromDB();
         renderAllSareesTable();
-        setTimeout(() => {
-            document.getElementById('edit-saree-modal').style.display = 'none';
-            statusEl.textContent = '';
-            statusEl.className = 'form-status-message';
-        }, 1500);
+        setTimeout(() => { document.getElementById('edit-saree-modal').style.display = 'none'; statusEl.textContent = ''; statusEl.className = 'form-status-message'; }, 1500);
     }
 }
 
