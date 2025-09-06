@@ -101,13 +101,36 @@
                 <div class="table-container">
                      <button id="export-csv-btn" class="btn">Export as CSV</button>
                     <table class="admin-table">
-                        <thead><tr><th>Order ID</th><th>Party Name</th><th>GST</th><th>Address</th><th>Items</th><th>Grand Total</th><th>Date</th></tr></thead>
+                        <thead><tr><th>Order ID</th><th>Party Name</th><th>Items</th><th>Grand Total</th><th>Date</th><th>Status</th></tr></thead>
                         <tbody id="admin-orders-table-body"></tbody>
                     </table>
                 </div>
             </section>
         </main>
     </div>
+
+    <!-- Edit Saree Modal -->
+    <div id="edit-saree-modal" class="modal" style="display: none;">
+        <div class="modal-content large">
+            <span class="close-button">&times;</span>
+            <h2>Edit Saree Details</h2>
+            <form id="edit-saree-form" class="admin-form">
+                <input type="hidden" id="editSareeId">
+                <div class="form-row">
+                    <div class="form-group"><label for="editSareeName">Saree Name</label><input type="text" id="editSareeName" required></div>
+                    <div class="form-group"><label for="editSareeCategory">Category</label><input type="text" id="editSareeCategory" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="editSareePrice">Price (₹)</label><input type="number" id="editSareePrice" required></div>
+                    <div class="form-group"><label for="editWeaverName">Weaver Name</label><input type="text" id="editWeaverName" required></div>
+                </div>
+                <div class="form-group"><label for="editSareeDescription">Description</label><textarea id="editSareeDescription" rows="3"></textarea></div>
+                <button type="submit" class="btn">Save Changes</button>
+                <p id="edit-saree-status" class="form-status-message"></p>
+            </form>
+        </div>
+    </div>
+
 
     <!-- Confirmation Modal -->
     <div id="confirmation-modal-admin" class="modal" style="display: none;">
