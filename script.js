@@ -1,6 +1,6 @@
 // --- Supabase Configuration & Initialization ---
 const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
+const SUPABASE_KEY = 'eyJhbGciOiJIJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
 
 const { createClient } = window.supabase;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -15,7 +15,6 @@ let state = {
 document.addEventListener('DOMContentLoaded', () => {
     const page = window.location.pathname.split("/").pop();
     setupUniversalListeners();
-
     switch (page) {
         case 'index.html': case '': initLoginPage(); break;
         case 'admin.html': initAdminLoginPage(); break;
@@ -29,12 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Security & Page Guards ---
 async function securePage(pageFunction) {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        window.location.href = 'index.html';
-    } else {
-        await loadSareesFromDB();
-        pageFunction(session.user);
-    }
+    if (!session) { window.location.href = 'index.html'; } 
+    else { await loadSareesFromDB(); pageFunction(session.user); }
 }
 
 // --- Universal Listeners ---
@@ -86,50 +81,11 @@ async function loadSareesFromDB() {
     if (!error) { state.sarees = data; }
 }
 
-// --- Home Page Logic ---
-async function initHomePage(user) {
-    const { data } = await supabase.from('parties').select('party_name').eq('id', user.id).single();
-    if (data) document.getElementById('welcome-message').textContent = `Welcome, ${data.party_name}`;
-    
-    document.getElementById('search-bar')?.addEventListener('input', updateProductGrid);
-    document.getElementById('sort-options')?.addEventListener('change', updateProductGrid);
-    
-    const categories = [...new Set(state.sarees.map(s => s.category))];
-    const categoryGrid = document.getElementById('category-grid');
-    if (categoryGrid) { categoryGrid.innerHTML = categories.map(cat => `<a href="#" class="category-link" data-category="${cat}">${cat}</a>`).join(''); }
-    
-    updateProductGrid();
-}
-
-function updateProductGrid() {
-    const searchTerm = document.getElementById('search-bar')?.value.toLowerCase() || '';
-    const sortValue = document.getElementById('sort-options')?.value || 'date-desc';
-    let filteredSarees = state.sarees.filter(saree => saree.name.toLowerCase().includes(searchTerm));
-    
-    switch (sortValue) {
-        case 'price-asc': filteredSarees.sort((a, b) => a.price - b.price); break;
-        case 'price-desc': filteredSarees.sort((a, b) => b.price - a.price); break;
-        default: break;
-    }
-    renderSarees(filteredSarees);
-}
-
-function renderSarees(sarees) {
-    const productGrid = document.getElementById('product-grid');
-    if (!productGrid) return;
-    productGrid.innerHTML = sarees.length === 0 
-        ? `<p class="empty-cart-message">No sarees found.</p>`
-        : sarees.map(saree => `
-            <div class="product-card" onclick="window.location.href='product.html?id=${saree.id}'">
-                <div class="product-image-container"><img src="${saree.images[0]}" alt="${saree.name}"></div>
-                <div class="product-info"><h3>${saree.name}</h3><p>${saree.description ? saree.description.substring(0, 80) + '...' : ''}</p><div class="product-price">₹${Number(saree.price).toLocaleString('en-IN')}</div></div>
-            </div>`).join('');
-}
-
 // --- Admin Dashboard Logic ---
 async function initAdminDashboard() {
     if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
     
+    // Setup navigation
     const navLinks = document.querySelectorAll('.admin-nav-link');
     const sections = document.querySelectorAll('.admin-section');
     navLinks.forEach(link => {
@@ -143,26 +99,138 @@ async function initAdminDashboard() {
         });
     });
     
+    // Attach form listeners
     document.getElementById('add-saree-form').addEventListener('submit', handleAddSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
     
-    document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container', 'url', 'https://example.com/image.jpg'));
-    document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container', 'text', 'e.g., Maroon'));
+    // Add Saree Form - dynamic inputs
+    document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container'));
+    document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container'));
 
+    // Setup delete listeners using event delegation
+    document.getElementById('all-sarees-table-body').addEventListener('click', handleSareeTableClick);
+    document.getElementById('all-parties-table-body').addEventListener('click', handlePartyTableClick);
+
+    // Load and render all data
     await loadSareesFromDB();
     renderAllSareesTable();
     renderRegisteredPartiesTable();
     renderAdminOrdersTable();
 }
 
-function addDynamicInput(containerId, type, placeholder) {
+function handleSareeTableClick(e) {
+    if (e.target.classList.contains('delete-btn')) {
+        const sareeId = e.target.dataset.id;
+        const sareeName = e.target.closest('tr').cells[0].textContent;
+        showConfirmationModal(`Are you sure you want to delete the saree "${sareeName}"? This action cannot be undone.`, () => deleteSaree(sareeId));
+    }
+}
+
+async function deleteSaree(sareeId) {
+    const { error } = await supabase.from('sarees').delete().eq('id', sareeId);
+    if (error) {
+        alert(`Error deleting saree: ${error.message}`);
+    } else {
+        await loadSareesFromDB();
+        renderAllSareesTable();
+    }
+}
+
+function handlePartyTableClick(e) {
+    if (e.target.classList.contains('delete-btn')) {
+        const partyId = e.target.dataset.id;
+        const partyName = e.target.closest('tr').cells[0].textContent;
+        showConfirmationModal(`Are you sure you want to delete the party "${partyName}"? This will permanently delete their login and cannot be undone.`, () => deleteParty(partyId));
+    }
+}
+
+async function deleteParty(partyId) {
+    // Calls the 'delete_party' function in your Supabase database
+    const { error } = await supabase.rpc('delete_party', { party_id: partyId });
+    if (error) {
+        alert(`Error deleting party: ${error.message}`);
+    } else {
+        renderRegisteredPartiesTable();
+    }
+}
+
+
+// --- Confirmation Modal Logic ---
+function showConfirmationModal(message, onConfirm) {
+    const modal = document.getElementById('confirmation-modal-admin');
+    const messageEl = document.getElementById('modal-message');
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    const cancelBtn = document.getElementById('modal-cancel-btn');
+
+    messageEl.textContent = message;
+    modal.style.display = 'block';
+
+    // This approach ensures we don't have multiple listeners stacked up
+    const confirmHandler = () => {
+        onConfirm();
+        hideModal();
+    };
+    
+    const hideModal = () => {
+        modal.style.display = 'none';
+        confirmBtn.removeEventListener('click', confirmHandler);
+    };
+
+    confirmBtn.addEventListener('click', confirmHandler, { once: true }); // {once: true} is a clean way to handle this
+    cancelBtn.onclick = hideModal;
+    
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            hideModal();
+        }
+    };
+}
+
+
+function renderAllSareesTable() {
+    const tableBody = document.getElementById('all-sarees-table-body');
+    if (!tableBody) return;
+    document.getElementById('total-sarees-stat').textContent = state.sarees.length;
+    tableBody.innerHTML = state.sarees.map(s => `
+        <tr>
+            <td>${s.name}</td>
+            <td>${s.category}</td>
+            <td>₹${Number(s.price).toLocaleString('en-IN')}</td>
+            <td>${s.weaver_name}</td>
+            <td>${new Date(s.created_at).toLocaleDateString()}</td>
+            <td><button class="delete-btn" data-id="${s.id}">Delete</button></td>
+        </tr>`).join('');
+}
+
+async function renderRegisteredPartiesTable() {
+    const tableBody = document.getElementById('all-parties-table-body');
+    if (!tableBody) return;
+    const { data, error } = await supabase.from('parties').select('*');
+    if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; return; }
+    document.getElementById('total-parties-stat').textContent = data.length;
+    tableBody.innerHTML = data.length > 0 
+        ? data.map(p => `
+            <tr>
+                <td>${p.party_name}</td>
+                <td>${p.email}</td>
+                <td>${p.gst_number}</td>
+                <td>${p.address}</td>
+                <td><button class="delete-btn" data-id="${p.id}">Delete</button></td>
+            </tr>`).join('') 
+        : `<tr><td colspan="5">No parties registered.</td></tr>`;
+}
+
+
+// Other functions (handleAddSaree, handleRegisterParty, etc.) remain largely the same, but are included for completeness
+function addDynamicInput(containerId) {
     const container = document.getElementById(containerId);
+    const firstInput = container.querySelector('input');
     const row = document.createElement('div');
     row.className = 'dynamic-input-row';
     const input = document.createElement('input');
-    input.type = type;
-    input.placeholder = placeholder;
+    input.type = firstInput.type;
+    input.placeholder = firstInput.placeholder;
     input.required = true;
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
@@ -179,25 +247,12 @@ async function handleAddSaree(e) {
     const statusEl = document.getElementById('add-saree-status');
     statusEl.textContent = 'Adding Saree...';
     statusEl.className = 'form-status-message';
-
     const images = Array.from(document.querySelectorAll('#image-links-container .dynamic-input-row input')).map(input => input.value);
     const colors = Array.from(document.querySelectorAll('#colors-container .dynamic-input-row input')).map(input => input.value);
-
-    const newSaree = {
-        name: document.getElementById('sareeName').value,
-        category: document.getElementById('sareeCategory').value,
-        price: Number(document.getElementById('sareePrice').value),
-        weaver_name: document.getElementById('weaverName').value,
-        description: document.getElementById('sareeDescription').value,
-        images,
-        colors
-    };
-
+    const newSaree = { name: document.getElementById('sareeName').value, category: document.getElementById('sareeCategory').value, price: Number(document.getElementById('sareePrice').value), weaver_name: document.getElementById('weaverName').value, description: document.getElementById('sareeDescription').value, images, colors };
     const { error } = await supabase.from('sarees').insert(newSaree);
-    if (error) {
-        statusEl.textContent = `Error: ${error.message}`;
-        statusEl.classList.add('error');
-    } else {
+    if (error) { statusEl.textContent = `Error: ${error.message}`; statusEl.classList.add('error'); } 
+    else {
         statusEl.textContent = 'Saree added successfully!';
         statusEl.classList.add('success');
         e.target.reset();
@@ -208,58 +263,20 @@ async function handleAddSaree(e) {
     }
 }
 
-function renderAllSareesTable() {
-    const tableBody = document.getElementById('all-sarees-table-body');
-    if(!tableBody) return;
-    document.getElementById('total-sarees-stat').textContent = state.sarees.length;
-    tableBody.innerHTML = state.sarees.map(s => `<tr><td>${s.name}</td><td>${s.category}</td><td>₹${Number(s.price).toLocaleString('en-IN')}</td><td>${s.weaver_name}</td><td>${new Date(s.created_at).toLocaleDateString()}</td><td><button class="delete-saree-btn" data-id="${s.id}">Delete</button></td></tr>`).join('');
-}
-
 async function handleRegisterParty(e) {
     e.preventDefault();
     const statusEl = document.getElementById('register-party-status');
     statusEl.textContent = 'Registering...';
     statusEl.className = 'form-status-message';
-    
     const email = document.getElementById('partyEmail').value;
     const password = document.getElementById('partyPassword').value;
-
     const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError) {
-        statusEl.textContent = `Auth Error: ${authError.message}`;
-        statusEl.classList.add('error');
-        return;
-    }
+    if (authError) { statusEl.textContent = `Auth Error: ${authError.message}`; statusEl.classList.add('error'); return; }
     if (authData.user) {
-        const { error: dbError } = await supabase.from('parties').insert({
-            id: authData.user.id,
-            party_name: document.getElementById('partyName').value,
-            address: document.getElementById('partyAddress').value,
-            gst_number: document.getElementById('partyGst').value,
-            email: email
-        });
-        if (dbError) {
-            statusEl.textContent = `Database Error: ${dbError.message}`;
-            statusEl.classList.add('error');
-        } else {
-            statusEl.textContent = 'Party registered successfully!';
-            statusEl.classList.add('success');
-            e.target.reset();
-            renderRegisteredPartiesTable();
-        }
-    } else {
-        statusEl.textContent = 'User could not be created.';
-        statusEl.classList.add('error');
-    }
-}
-
-async function renderRegisteredPartiesTable() {
-    const tableBody = document.getElementById('all-parties-table-body');
-    if(!tableBody) return;
-    const { data, error } = await supabase.from('parties').select('*');
-    if (error) { tableBody.innerHTML = `<tr><td colspan="4">Failed to load parties.</td></tr>`; return; }
-    document.getElementById('total-parties-stat').textContent = data.length;
-    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td></tr>`).join('') : `<tr><td colspan="4">No parties registered.</td></tr>`;
+        const { error: dbError } = await supabase.from('parties').insert({ id: authData.user.id, party_name: document.getElementById('partyName').value, address: document.getElementById('partyAddress').value, gst_number: document.getElementById('partyGst').value, email: email });
+        if (dbError) { statusEl.textContent = `Database Error: ${dbError.message}`; statusEl.classList.add('error'); } 
+        else { statusEl.textContent = 'Party registered successfully!'; statusEl.classList.add('success'); e.target.reset(); renderRegisteredPartiesTable(); }
+    } else { statusEl.textContent = 'User could not be created.'; statusEl.classList.add('error'); }
 }
 
 async function renderAdminOrdersTable() {
@@ -274,7 +291,6 @@ async function renderAdminOrdersTable() {
         return `<tr><td>${order.id}</td><td>${order.party_details.party_name}</td><td>${order.party_details.gst_number}</td><td>${order.party_details.address}</td><td>${itemsSummary}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>`;
     }).join('');
 }
-
 async function exportOrdersToCSV() {
     const { data, error } = await supabase.from('orders').select('*');
     if (error || !data) { alert("Could not fetch orders to export."); return; }
@@ -291,24 +307,50 @@ async function exportOrdersToCSV() {
     link.click();
     document.body.removeChild(link);
 }
-
-// --- Orders Page Logic ---
+// Home Page functions
+async function initHomePage(user) {
+    const { data } = await supabase.from('parties').select('party_name').eq('id', user.id).single();
+    if (data) document.getElementById('welcome-message').textContent = `Welcome, ${data.party_name}`;
+    document.getElementById('search-bar')?.addEventListener('input', updateProductGrid);
+    document.getElementById('sort-options')?.addEventListener('change', updateProductGrid);
+    const categories = [...new Set(state.sarees.map(s => s.category))];
+    const categoryGrid = document.getElementById('category-grid');
+    if (categoryGrid) { categoryGrid.innerHTML = categories.map(cat => `<a href="#" class="category-link" data-category="${cat}">${cat}</a>`).join(''); }
+    updateProductGrid();
+}
+function updateProductGrid() {
+    const searchTerm = document.getElementById('search-bar')?.value.toLowerCase() || '';
+    const sortValue = document.getElementById('sort-options')?.value || 'date-desc';
+    let filteredSarees = state.sarees.filter(saree => saree.name.toLowerCase().includes(searchTerm));
+    switch (sortValue) {
+        case 'price-asc': filteredSarees.sort((a, b) => a.price - b.price); break;
+        case 'price-desc': filteredSarees.sort((a, b) => b.price - a.price); break;
+        default: break;
+    }
+    renderSarees(filteredSarees);
+}
+function renderSarees(sarees) {
+    const productGrid = document.getElementById('product-grid');
+    if (!productGrid) return;
+    productGrid.innerHTML = sarees.length === 0 
+        ? `<p class="empty-cart-message">No sarees found.</p>`
+        : sarees.map(saree => `
+            <div class="product-card" onclick="window.location.href='product.html?id=${saree.id}'">
+                <div class="product-image-container"><img src="${saree.images[0]}" alt="${saree.name}"></div>
+                <div class="product-info"><h3>${saree.name}</h3><p>${saree.description ? saree.description.substring(0, 80) + '...' : ''}</p><div class="product-price">₹${Number(saree.price).toLocaleString('en-IN')}</div></div>
+            </div>`).join('');
+}
+// Orders Page Functions
 async function initOrdersPage(user) {
     const { data } = await supabase.from('parties').select('*').eq('id', user.id).single();
     if (data) { document.getElementById('party-details-review').innerHTML = `<h3>Your details for this order:</h3><p><strong>Name:</strong> ${data.party_name}</p><p><strong>Address:</strong> ${data.address}</p><p><strong>GST No:</strong> ${data.gst_number}</p>`; }
-    
     const modal = document.getElementById('confirmation-modal');
     const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn');
-    const closeAndRedirect = () => {
-        modal.style.display = "none";
-        window.location.href = 'home.html';
-    };
+    const closeAndRedirect = () => { modal.style.display = "none"; window.location.href = 'home.html'; };
     closeButtons.forEach(btn => btn.onclick = closeAndRedirect);
     window.onclick = event => { if (event.target == modal) closeAndRedirect(); };
-
     renderOrderTable(user);
 }
-
 async function placeOrder(user) {
     const userOrderItems = state.orders[user.id] || [];
     if (userOrderItems.length === 0) return alert("Your cart is empty.");
@@ -327,7 +369,6 @@ async function placeOrder(user) {
         document.getElementById('confirmation-modal').style.display = "block";
     }
 }
-
 function renderOrderTable(user) {
     const orderItemsBody = document.getElementById('order-items-body');
     const orderTotalSection = document.getElementById('order-total-section');
@@ -346,10 +387,8 @@ function renderOrderTable(user) {
     document.querySelectorAll('.remove-item-btn').forEach(btn => btn.addEventListener('click', e => removeOrderItem(user, e.target.dataset.index)));
     document.getElementById('place-order-btn').addEventListener('click', () => placeOrder(user));
 }
-
 function updateOrderItemQuantity(user, index, quantity) { if (quantity > 0) { state.orders[user.id][index].quantity = quantity; localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); } }
 function removeOrderItem(user, index) { state.orders[user.id].splice(index, 1); localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); }
-
 function addToOrder(user, sareeId, color, quantity) {
     if (!user) return;
     const userId = user.id;
@@ -359,103 +398,34 @@ function addToOrder(user, sareeId, color, quantity) {
     else { state.orders[userId].push({ id: sareeId, color, quantity }); }
     localStorage.setItem('userOrders', JSON.stringify(state.orders));
 }
-
-// --- Product Page Logic ---
+// Product Page Logic
 function initProductPage(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const sareeId = parseInt(urlParams.get('id'));
     const saree = state.sarees.find(s => s.id === sareeId);
-    if (!saree) { 
-        document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; 
-        return; 
-    }
-
+    if (!saree) { document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; return; }
     const container = document.getElementById('product-detail-container');
-    container.innerHTML = `
-        <div class="product-detail-grid">
-            <div class="product-image-gallery">
-                <div class="main-image">
-                    <img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image">
-                </div>
-                <div class="thumbnails">
-                    ${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}
-                </div>
-            </div>
-            <div class="product-details-content">
-                <h1>${saree.name}</h1>
-                <p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p>
-                <p class="description">${saree.description || ''}</p>
-                
-                <div class="options-group">
-                    <label>Color</label>
-                    <div class="color-swatches">
-                        ${saree.colors.map((color, index) => `<div class="color-swatch" data-color="${color}" title="${color}" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>`).join('')}
-                    </div>
-                </div>
-
-                <div class="options-group">
-                    <label>Quantity</label>
-                    <div class="quantity-selector">
-                        <button id="quantity-minus">−</button>
-                        <input type="number" id="quantity-input" value="1" min="1">
-                        <button id="quantity-plus">+</button>
-                    </div>
-                </div>
-
-                <button class="btn" id="add-to-order-btn"><i class="fas fa-shopping-bag"></i> Add to Order</button>
-            </div>
-        </div>
-    `;
-
-    // --- Add Event Listeners for the new interactive elements ---
+    container.innerHTML = `<div class="product-detail-grid"><div class="product-image-gallery"><div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image"></div><div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}</div></div><div class="product-details-content"><h1>${saree.name}</h1><p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p><p class="description">${saree.description || ''}</p><div class="options-group"><label>Color</label><div class="color-swatches">${saree.colors.map((color, index) => `<div class="color-swatch" data-color="${color}" title="${color}" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>`).join('')}</div></div><div class="options-group"><label>Quantity</label><div class="quantity-selector"><button id="quantity-minus">−</button><input type="number" id="quantity-input" value="1" min="1"><button id="quantity-plus">+</button></div></div><button class="btn" id="add-to-order-btn"><i class="fas fa-shopping-bag"></i> Add to Order</button></div></div>`;
     const mainImage = document.getElementById('main-saree-image');
     const thumbnails = document.querySelectorAll('.thumbnails img');
     thumbnails.forEach(thumb => {
-        thumb.addEventListener('click', () => {
-            mainImage.src = thumb.src;
-            thumbnails.forEach(t => t.classList.remove('active'));
-            thumb.classList.add('active');
-        });
+        thumb.addEventListener('click', () => { mainImage.src = thumb.src; thumbnails.forEach(t => t.classList.remove('active')); thumb.classList.add('active'); });
     });
-
     const colorSwatches = document.querySelectorAll('.color-swatch');
-    if (colorSwatches.length > 0) {
-        colorSwatches[0].classList.add('active');
-    }
-    colorSwatches.forEach(swatch => {
-        swatch.addEventListener('click', () => {
-            colorSwatches.forEach(s => s.classList.remove('active'));
-            swatch.classList.add('active');
-        });
-    });
-
+    if (colorSwatches.length > 0) { colorSwatches[0].classList.add('active'); }
+    colorSwatches.forEach(swatch => { swatch.addEventListener('click', () => { colorSwatches.forEach(s => s.classList.remove('active')); swatch.classList.add('active'); }); });
     const quantityInput = document.getElementById('quantity-input');
-    document.getElementById('quantity-minus').addEventListener('click', () => {
-        let currentValue = parseInt(quantityInput.value);
-        if (currentValue > 1) quantityInput.value = currentValue - 1;
-    });
-    document.getElementById('quantity-plus').addEventListener('click', () => {
-        quantityInput.value = parseInt(quantityInput.value) + 1;
-    });
-
+    document.getElementById('quantity-minus').addEventListener('click', () => { let currentValue = parseInt(quantityInput.value); if (currentValue > 1) quantityInput.value = currentValue - 1; });
+    document.getElementById('quantity-plus').addEventListener('click', () => { quantityInput.value = parseInt(quantityInput.value) + 1; });
     document.getElementById('add-to-order-btn').addEventListener('click', () => {
         const selectedColorEl = document.querySelector('.color-swatch.active');
-        if (!selectedColorEl) {
-            alert('Please select a color.');
-            return;
-        }
+        if (!selectedColorEl) { alert('Please select a color.'); return; }
         const selectedColor = selectedColorEl.dataset.color;
         const quantity = parseInt(quantityInput.value);
         addToOrder(user, saree.id, selectedColor, quantity);
         alert(`${quantity} x ${saree.name} (${selectedColor}) added to your order!`);
     });
-
-    // Render related products
     const relatedGrid = document.getElementById('related-products-grid');
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
-    relatedGrid.innerHTML = relatedSarees.map(rs => `
-        <div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'">
-            <div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div>
-            <div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div>
-        </div>`).join('');
+    relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
 }
