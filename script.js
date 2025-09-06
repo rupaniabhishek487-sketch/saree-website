@@ -1,6 +1,5 @@
 // --- Supabase Configuration & Initialization ---
 const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co';
-// CORRECTED the typo in the SUPABASE_KEY
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
 
 const { createClient } = window.supabase;
@@ -148,6 +147,7 @@ function handlePartyTableClick(e) {
 }
 
 async function deleteParty(partyId) {
+    // Calls the 'delete_party' function in your Supabase database
     const { error } = await supabase.rpc('delete_party', { party_id: partyId });
     if (error) {
         alert(`Error deleting party: ${error.message}`);
@@ -183,7 +183,9 @@ async function renderRegisteredPartiesTable() {
     const { data, error } = await supabase.from('parties').select('*');
     if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; console.error(error); return; }
     document.getElementById('total-parties-stat').textContent = data.length;
-    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') : `<tr><td colspan="5">No parties registered.</td></tr>`;
+    tableBody.innerHTML = data.length > 0 
+        ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') 
+        : `<tr><td colspan="5">No parties registered.</td></tr>`;
 }
 
 async function renderAdminOrdersTable() {
@@ -379,18 +381,4 @@ function initProductPage(user) {
     if (colorSwatches.length > 0) { colorSwatches[0].classList.add('active'); }
     colorSwatches.forEach(swatch => { swatch.addEventListener('click', () => { colorSwatches.forEach(s => s.classList.remove('active')); swatch.classList.add('active'); }); });
     const quantityInput = document.getElementById('quantity-input');
-    document.getElementById('quantity-minus').addEventListener('click', () => { let currentValue = parseInt(quantityInput.value); if (currentValue > 1) quantityInput.value = currentValue - 1; });
-    document.getElementById('quantity-plus').addEventListener('click', () => { quantityInput.value = parseInt(quantityInput.value) + 1; });
-    document.getElementById('add-to-order-btn').addEventListener('click', () => {
-        const selectedColorEl = document.querySelector('.color-swatch.active');
-        if (!selectedColorEl) { alert('Please select a color.'); return; }
-        const selectedColor = selectedColorEl.dataset.color;
-        const quantity = parseInt(quantityInput.value);
-        addToOrder(user, saree.id, selectedColor, quantity);
-        alert(`${quantity} x ${saree.name} (${selectedColor}) added to your order!`);
-    });
-    const relatedGrid = document.getElementById('related-products-grid');
-    const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
-    relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
-}
-
+    document.getElementById('quantity-minus').addEventListener('click', ().
