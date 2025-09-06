@@ -30,35 +30,28 @@
     <main>
         <section class="orders-section">
             <div class="container">
-                <h2>My Order Summary</h2>
-                <div class="order-summary-box">
+                <h2>My Current Order</h2>
+                <div id="current-order-container" class="order-summary-box">
                     <div id="party-details-review" class="party-details-review">
                         <!-- Party details loaded here -->
                     </div>
                     <table class="orders-table">
-                        <thead>
-                            <tr>
-                                <th>Saree Name</th>
-                                <th>Color</th>
-                                <th>Quantity</th>
-                                <th>Unit Price</th>
-                                <th>Total Price</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="order-items-body">
-                            <!-- Order items will be injected here -->
-                        </tbody>
+                        <thead><tr><th>Saree Name</th><th>Color</th><th>Quantity</th><th>Unit Price</th><th>Total Price</th><th>Action</th></tr></thead>
+                        <tbody id="order-items-body"></tbody>
                     </table>
-                    <div id="order-total-section" class="order-total">
-                        <!-- Grand total and Place Order button injected here -->
-                    </div>
+                    <div id="order-total-section" class="order-total"></div>
+                </div>
+                
+                <!-- Past Orders Section -->
+                <h2 style="margin-top: 60px;">Your Past Orders</h2>
+                <div id="past-orders-container" class="order-summary-box">
+                    <!-- Past orders will be injected here by script.js -->
                 </div>
             </div>
         </section>
     </main>
     
-    <!-- Confirmation Modal - CORRECTED to be hidden by default -->
+    <!-- Confirmation Modal -->
     <div id="confirmation-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close-button">&times;</span>
