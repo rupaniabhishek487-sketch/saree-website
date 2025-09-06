@@ -13,10 +13,10 @@ let state = {
 
 // --- Main Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
-    const page = window.location.pathname.split("/").pop();
+    const page = window.location.pathname.split("/").pop() || 'index.html';
     setupUniversalListeners();
     switch (page) {
-        case 'index.html': case '': initLoginPage(); break;
+        case 'index.html': initLoginPage(); break;
         case 'admin.html': initAdminLoginPage(); break;
         case 'home.html': securePage(initHomePage); break;
         case 'product.html': securePage(initProductPage); break;
@@ -51,19 +51,29 @@ async function handleLogout(e) {
     if (!error) { window.location.href = 'index.html'; }
 }
 
-function initLoginPage() { document.getElementById('login-form')?.addEventListener('submit', handleLogin); }
+function initLoginPage() { 
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+}
 async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errorEl = document.getElementById('login-error');
-    errorEl.textContent = '';
+    errorEl.textContent = 'Logging in...';
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { errorEl.textContent = "Invalid email or password."; } 
     else { window.location.href = 'home.html'; }
 }
 
-function initAdminLoginPage() { document.getElementById('admin-login-form')?.addEventListener('submit', handleAdminLogin); }
+function initAdminLoginPage() { 
+    const adminForm = document.getElementById('admin-login-form');
+    if (adminForm) {
+        adminForm.addEventListener('submit', handleAdminLogin);
+    }
+}
 function handleAdminLogin(e) {
     e.preventDefault();
     const ADMIN_PASS = "SareeAdmin2025";
@@ -85,8 +95,6 @@ async function loadSareesFromDB() {
 // --- Admin Dashboard Logic ---
 async function initAdminDashboard() {
     if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
-    
-    // Setup navigation
     const navLinks = document.querySelectorAll('.admin-nav-link');
     const sections = document.querySelectorAll('.admin-section');
     navLinks.forEach(link => {
@@ -99,21 +107,13 @@ async function initAdminDashboard() {
             sections.forEach(sec => sec.style.display = ('#' + sec.id === targetId) ? 'block' : 'none');
         });
     });
-    
-    // Attach form listeners
     document.getElementById('add-saree-form').addEventListener('submit', handleAddSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
-    
-    // Add Saree Form - dynamic inputs
     document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container'));
     document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container'));
-
-    // Setup delete listeners using event delegation
     document.getElementById('all-sarees-table-body').addEventListener('click', handleSareeTableClick);
     document.getElementById('all-parties-table-body').addEventListener('click', handlePartyTableClick);
-
-    // Load and render all data
     await loadSareesFromDB();
     renderAllSareesTable();
     renderRegisteredPartiesTable();
@@ -130,12 +130,8 @@ function handleSareeTableClick(e) {
 
 async function deleteSaree(sareeId) {
     const { error } = await supabase.from('sarees').delete().eq('id', sareeId);
-    if (error) {
-        alert(`Error deleting saree: ${error.message}`);
-    } else {
-        await loadSareesFromDB();
-        renderAllSareesTable();
-    }
+    if (error) { alert(`Error deleting saree: ${error.message}`); } 
+    else { await loadSareesFromDB(); renderAllSareesTable(); }
 }
 
 function handlePartyTableClick(e) {
@@ -147,13 +143,9 @@ function handlePartyTableClick(e) {
 }
 
 async function deleteParty(partyId) {
-    // Calls the 'delete_party' function in your Supabase database
     const { error } = await supabase.rpc('delete_party', { party_id: partyId });
-    if (error) {
-        alert(`Error deleting party: ${error.message}`);
-    } else {
-        renderRegisteredPartiesTable();
-    }
+    if (error) { alert(`Error deleting party: ${error.message}`); } 
+    else { await renderRegisteredPartiesTable(); }
 }
 
 function showConfirmationModal(message, onConfirm) {
@@ -183,9 +175,7 @@ async function renderRegisteredPartiesTable() {
     const { data, error } = await supabase.from('parties').select('*');
     if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; console.error(error); return; }
     document.getElementById('total-parties-stat').textContent = data.length;
-    tableBody.innerHTML = data.length > 0 
-        ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') 
-        : `<tr><td colspan="5">No parties registered.</td></tr>`;
+    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') : `<tr><td colspan="5">No parties registered.</td></tr>`;
 }
 
 async function renderAdminOrdersTable() {
@@ -253,7 +243,7 @@ async function handleRegisterParty(e) {
     if (authData.user) {
         const { error: dbError } = await supabase.from('parties').insert({ id: authData.user.id, party_name: document.getElementById('partyName').value, address: document.getElementById('partyAddress').value, gst_number: document.getElementById('partyGst').value, email: email });
         if (dbError) { statusEl.textContent = `Database Error: ${dbError.message}`; statusEl.classList.add('error'); } 
-        else { statusEl.textContent = 'Party registered successfully!'; statusEl.classList.add('success'); e.target.reset(); renderRegisteredPartiesTable(); }
+        else { statusEl.textContent = 'Party registered successfully!'; statusEl.classList.add('success'); e.target.reset(); await renderRegisteredPartiesTable(); }
     } else { statusEl.textContent = 'User could not be created.'; statusEl.classList.add('error'); }
 }
 
@@ -381,4 +371,18 @@ function initProductPage(user) {
     if (colorSwatches.length > 0) { colorSwatches[0].classList.add('active'); }
     colorSwatches.forEach(swatch => { swatch.addEventListener('click', () => { colorSwatches.forEach(s => s.classList.remove('active')); swatch.classList.add('active'); }); });
     const quantityInput = document.getElementById('quantity-input');
-    document.getElementById('quantity-minus').addEventListener('click', ().
+    document.getElementById('quantity-minus').addEventListener('click', () => { let currentValue = parseInt(quantityInput.value); if (currentValue > 1) quantityInput.value = currentValue - 1; });
+    document.getElementById('quantity-plus').addEventListener('click', () => { quantityInput.value = parseInt(quantityInput.value) + 1; });
+    document.getElementById('add-to-order-btn').addEventListener('click', () => {
+        const selectedColorEl = document.querySelector('.color-swatch.active');
+        if (!selectedColorEl) { alert('Please select a color.'); return; }
+        const selectedColor = selectedColorEl.dataset.color;
+        const quantity = parseInt(quantityInput.value);
+        addToOrder(user, saree.id, selectedColor, quantity);
+        alert(`${quantity} x ${saree.name} (${selectedColor}) added to your order!`);
+    });
+    const relatedGrid = document.getElementById('related-products-grid');
+    const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
+    relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
+}
+
