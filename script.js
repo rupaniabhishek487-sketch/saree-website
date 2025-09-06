@@ -137,8 +137,11 @@ async function initAdminDashboard() {
     document.getElementById('edit-saree-form').addEventListener('submit', handleUpdateSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
-    document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container'));
-    document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container'));
+    
+    // CORRECTED: Event listeners now call the robust addDynamicInput function
+    document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container', 'url', 'https://example.com/image.jpg'));
+    document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container', 'text', 'e.g., Maroon'));
+    
     document.getElementById('all-sarees-table-body').addEventListener('click', handleSareeTableClick);
     document.getElementById('all-parties-table-body').addEventListener('click', handlePartyTableClick);
     document.getElementById('admin-orders-table-body').addEventListener('change', handleOrderStatusChange);
@@ -146,6 +149,25 @@ async function initAdminDashboard() {
     renderAllSareesTable();
     renderRegisteredPartiesTable();
     renderAdminOrdersTable();
+}
+
+// CORRECTED: This function is now more robust and doesn't rely on copying other inputs.
+function addDynamicInput(containerId, inputType, placeholder) {
+    const container = document.getElementById(containerId);
+    const row = document.createElement('div');
+    row.className = 'dynamic-input-row';
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.placeholder = placeholder;
+    input.required = true;
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove';
+    removeBtn.textContent = '−';
+    removeBtn.onclick = () => row.remove();
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
 }
 
 function handleSareeTableClick(e) {
