@@ -1,44 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
-	<title></title>
-	<meta name="generator" content="LibreOffice 25.2.3.2 (Linux)"/>
-	<meta name="created" content="00:00:00"/>
-	<meta name="changed" content="00:00:00"/>
-	<style type="text/css">
-		@page { size: 8.27in 11.69in; margin: 0.79in }
-		p { margin-bottom: 0.1in; line-height: 115%; background: transparent }
-		pre { font-size: 10pt; font-family: "Liberation Mono", monospace; background: transparent }
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Access - Narendra Sarees</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body lang="en-US" link="#000080" vlink="#800000" dir="ltr"><pre>&lt;!DOCTYPE html&gt;
-&lt;html lang=&quot;en&quot;&gt;
-&lt;head&gt;
-    &lt;meta charset=&quot;UTF-8&quot;&gt;
-    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
-    &lt;title&gt;Admin Access - Narendra Sarees&lt;/title&gt;
-    &lt;link href=&quot;https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
-    &lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;
-&lt;/head&gt;
-&lt;body class=&quot;login-body&quot;&gt;
-    &lt;div class=&quot;login-container fade-in&quot;&gt;
-        &lt;div class=&quot;login-box&quot;&gt;
-            &lt;h1 class=&quot;login-title&quot;&gt;Admin Access&lt;/h1&gt;
-            &lt;p class=&quot;login-subtitle&quot;&gt;Enter the administrator password&lt;/p&gt;
-            &lt;form id=&quot;admin-login-form&quot;&gt;
-                &lt;div class=&quot;input-group&quot;&gt;
-                    &lt;label for=&quot;admin-password&quot;&gt;Password&lt;/label&gt;
-                    &lt;input type=&quot;password&quot; id=&quot;admin-password&quot; name=&quot;admin-password&quot; required placeholder=&quot;Enter admin password&quot;&gt;
-                &lt;/div&gt;
-                &lt;button type=&quot;submit&quot; class=&quot;btn-login&quot;&gt;Enter&lt;/button&gt;
-                &lt;p id=&quot;admin-login-error&quot; class=&quot;login-error-message&quot;&gt;&lt;/p&gt;
-            &lt;/form&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+<body class="login-body">
+    <div class="login-container fade-in">
+        <div class="login-box">
+            <h1 class="login-title">Admin Access</h1>
+            <p class="login-subtitle">Enter the administrator password</p>
+            <form id="admin-login-form">
+                <div class="input-group">
+                    <label for="admin-password">Password</label>
+                    <input type="password" id="admin-password" name="admin-password" required placeholder="Enter admin password">
+                </div>
+                <button type="submit" class="btn-login">Enter</button>
+                <p id="admin-login-error" class="login-error-message"></p>
+            </form>
+        </div>
+    </div>
     
-    &lt;script type=&quot;module&quot; src=&quot;script.js&quot;&gt;&lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;</pre>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
