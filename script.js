@@ -1,6 +1,7 @@
 // --- Supabase Configuration & Initialization ---
 const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
+// CORRECTED the typo in the SUPABASE_KEY
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
 
 const { createClient } = window.supabase;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -79,6 +80,7 @@ function handleAdminLogin(e) {
 async function loadSareesFromDB() {
     const { data, error } = await supabase.from('sarees').select('*').order('created_at', { ascending: false });
     if (!error) { state.sarees = data; }
+    else { console.error("Error fetching sarees:", error); }
 }
 
 // --- Admin Dashboard Logic ---
@@ -146,7 +148,6 @@ function handlePartyTableClick(e) {
 }
 
 async function deleteParty(partyId) {
-    // Calls the 'delete_party' function in your Supabase database
     const { error } = await supabase.rpc('delete_party', { party_id: partyId });
     if (error) {
         alert(`Error deleting party: ${error.message}`);
@@ -155,74 +156,49 @@ async function deleteParty(partyId) {
     }
 }
 
-
-// --- Confirmation Modal Logic ---
 function showConfirmationModal(message, onConfirm) {
     const modal = document.getElementById('confirmation-modal-admin');
     const messageEl = document.getElementById('modal-message');
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
-
     messageEl.textContent = message;
     modal.style.display = 'block';
-
-    // This approach ensures we don't have multiple listeners stacked up
-    const confirmHandler = () => {
-        onConfirm();
-        hideModal();
-    };
-    
-    const hideModal = () => {
-        modal.style.display = 'none';
-        confirmBtn.removeEventListener('click', confirmHandler);
-    };
-
-    confirmBtn.addEventListener('click', confirmHandler, { once: true }); // {once: true} is a clean way to handle this
+    const confirmHandler = () => { onConfirm(); hideModal(); };
+    const hideModal = () => { modal.style.display = 'none'; confirmBtn.removeEventListener('click', confirmHandler); };
+    confirmBtn.addEventListener('click', confirmHandler, { once: true });
     cancelBtn.onclick = hideModal;
-    
-    window.onclick = (event) => {
-        if (event.target == modal) {
-            hideModal();
-        }
-    };
+    window.onclick = (event) => { if (event.target == modal) { hideModal(); } };
 }
-
 
 function renderAllSareesTable() {
     const tableBody = document.getElementById('all-sarees-table-body');
     if (!tableBody) return;
     document.getElementById('total-sarees-stat').textContent = state.sarees.length;
-    tableBody.innerHTML = state.sarees.map(s => `
-        <tr>
-            <td>${s.name}</td>
-            <td>${s.category}</td>
-            <td>₹${Number(s.price).toLocaleString('en-IN')}</td>
-            <td>${s.weaver_name}</td>
-            <td>${new Date(s.created_at).toLocaleDateString()}</td>
-            <td><button class="delete-btn" data-id="${s.id}">Delete</button></td>
-        </tr>`).join('');
+    tableBody.innerHTML = state.sarees.map(s => `<tr><td>${s.name}</td><td>${s.category}</td><td>₹${Number(s.price).toLocaleString('en-IN')}</td><td>${s.weaver_name}</td><td>${new Date(s.created_at).toLocaleDateString()}</td><td><button class="delete-btn" data-id="${s.id}">Delete</button></td></tr>`).join('');
 }
 
 async function renderRegisteredPartiesTable() {
     const tableBody = document.getElementById('all-parties-table-body');
     if (!tableBody) return;
     const { data, error } = await supabase.from('parties').select('*');
-    if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; return; }
+    if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; console.error(error); return; }
     document.getElementById('total-parties-stat').textContent = data.length;
-    tableBody.innerHTML = data.length > 0 
-        ? data.map(p => `
-            <tr>
-                <td>${p.party_name}</td>
-                <td>${p.email}</td>
-                <td>${p.gst_number}</td>
-                <td>${p.address}</td>
-                <td><button class="delete-btn" data-id="${p.id}">Delete</button></td>
-            </tr>`).join('') 
-        : `<tr><td colspan="5">No parties registered.</td></tr>`;
+    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') : `<tr><td colspan="5">No parties registered.</td></tr>`;
 }
 
+async function renderAdminOrdersTable() {
+    const tableBody = document.getElementById('admin-orders-table-body');
+    if(!tableBody) return;
+    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (error) { tableBody.innerHTML = `<tr><td colspan="7">Failed to load orders.</td></tr>`; console.error(error); return; }
+    document.getElementById('total-orders-stat').textContent = data.length;
+    if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="7">No orders placed.</td></tr>`; return; }
+    tableBody.innerHTML = data.map(order => {
+        const itemsSummary = order.order_items.map(item => `${item.quantity} x ${item.sareeName} (${item.color})`).join('<br>');
+        return `<tr><td>${order.id}</td><td>${order.party_details.party_name}</td><td>${order.party_details.gst_number}</td><td>${order.party_details.address}</td><td>${itemsSummary}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>`;
+    }).join('');
+}
 
-// Other functions (handleAddSaree, handleRegisterParty, etc.) remain largely the same, but are included for completeness
 function addDynamicInput(containerId) {
     const container = document.getElementById(containerId);
     const firstInput = container.querySelector('input');
@@ -279,18 +255,6 @@ async function handleRegisterParty(e) {
     } else { statusEl.textContent = 'User could not be created.'; statusEl.classList.add('error'); }
 }
 
-async function renderAdminOrdersTable() {
-    const tableBody = document.getElementById('admin-orders-table-body');
-    if(!tableBody) return;
-    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    if (error) { tableBody.innerHTML = `<tr><td colspan="7">Failed to load orders.</td></tr>`; return; }
-    document.getElementById('total-orders-stat').textContent = data.length;
-    if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="7">No orders placed.</td></tr>`; return; }
-    tableBody.innerHTML = data.map(order => {
-        const itemsSummary = order.order_items.map(item => `${item.quantity} x ${item.sareeName} (${item.color})`).join('<br>');
-        return `<tr><td>${order.id}</td><td>${order.party_details.party_name}</td><td>${order.party_details.gst_number}</td><td>${order.party_details.address}</td><td>${itemsSummary}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>`;
-    }).join('');
-}
 async function exportOrdersToCSV() {
     const { data, error } = await supabase.from('orders').select('*');
     if (error || !data) { alert("Could not fetch orders to export."); return; }
@@ -429,3 +393,4 @@ function initProductPage(user) {
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
     relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
 }
+
