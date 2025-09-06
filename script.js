@@ -43,13 +43,14 @@ function setupUniversalListeners() {
     
     // Mobile Navigation Toggle
     const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
-    const navLinks = document.querySelector('.nav-links');
-    if (mobileNavToggle && navLinks) {
+    const mainNav = document.querySelector('.main-nav');
+    if (mobileNavToggle && mainNav) {
         mobileNavToggle.addEventListener('click', () => {
-            const isVisible = navLinks.getAttribute('data-visible') === 'true';
-            navLinks.setAttribute('data-visible', !isVisible);
+            const isVisible = mainNav.getAttribute('data-visible') === 'true';
+            mainNav.setAttribute('data-visible', !isVisible);
             mobileNavToggle.setAttribute('aria-expanded', !isVisible);
             mobileNavToggle.querySelector('i').className = isVisible ? 'fas fa-bars' : 'fas fa-times';
+            document.body.classList.toggle('nav-open');
         });
     }
 }
