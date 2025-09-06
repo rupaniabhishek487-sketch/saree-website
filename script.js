@@ -297,7 +297,6 @@ async function initOrdersPage(user) {
     const { data } = await supabase.from('parties').select('*').eq('id', user.id).single();
     if (data) { document.getElementById('party-details-review').innerHTML = `<h3>Your details for this order:</h3><p><strong>Name:</strong> ${data.party_name}</p><p><strong>Address:</strong> ${data.address}</p><p><strong>GST No:</strong> ${data.gst_number}</p>`; }
     
-    // CORRECTED: Setup modal listeners regardless of cart status
     const modal = document.getElementById('confirmation-modal');
     const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn');
     const closeAndRedirect = () => {
@@ -366,34 +365,92 @@ function initProductPage(user) {
     const urlParams = new URLSearchParams(window.location.search);
     const sareeId = parseInt(urlParams.get('id'));
     const saree = state.sarees.find(s => s.id === sareeId);
-    if (!saree) { document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; return; }
+    if (!saree) { 
+        document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; 
+        return; 
+    }
+
     const container = document.getElementById('product-detail-container');
     container.innerHTML = `
-        <div class="product-image-slider">
-            <div class="slider-main-image"><img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image"></div>
-            <div class="slider-thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index+1}" class="${index === 0 ? 'active' : ''}">`).join('')}</div>
-        </div>
-        <div class="product-details-content">
-            <h1>${saree.name}</h1><p class="product-price">₹${Number(saree.price).toLocaleString('en-IN')}</p><p>${saree.description || ''}</p>
-            <div class="product-options">
-                <div class="form-group"><label for="color-select">Color</label><select id="color-select">${saree.colors.map(color => `<option value="${color}">${color}</option>`).join('')}</select></div>
-                <div class="form-group"><label for="quantity-input">Quantity</label><input type="number" id="quantity-input" value="1" min="1"></div>
-                <button class="btn" id="add-to-order-btn">Add to Order</button>
+        <div class="product-detail-grid">
+            <div class="product-image-gallery">
+                <div class="main-image">
+                    <img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image">
+                </div>
+                <div class="thumbnails">
+                    ${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}
+                </div>
             </div>
-        </div>`;
-    document.querySelectorAll('.slider-thumbnails img').forEach(thumb => {
+            <div class="product-details-content">
+                <h1>${saree.name}</h1>
+                <p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p>
+                <p class="description">${saree.description || ''}</p>
+                
+                <div class="options-group">
+                    <label>Color</label>
+                    <div class="color-swatches">
+                        ${saree.colors.map((color, index) => `<div class="color-swatch" data-color="${color}" title="${color}" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>`).join('')}
+                    </div>
+                </div>
+
+                <div class="options-group">
+                    <label>Quantity</label>
+                    <div class="quantity-selector">
+                        <button id="quantity-minus">−</button>
+                        <input type="number" id="quantity-input" value="1" min="1">
+                        <button id="quantity-plus">+</button>
+                    </div>
+                </div>
+
+                <button class="btn" id="add-to-order-btn"><i class="fas fa-shopping-bag"></i> Add to Order</button>
+            </div>
+        </div>
+    `;
+
+    // --- Add Event Listeners for the new interactive elements ---
+    const mainImage = document.getElementById('main-saree-image');
+    const thumbnails = document.querySelectorAll('.thumbnails img');
+    thumbnails.forEach(thumb => {
         thumb.addEventListener('click', () => {
-            document.getElementById('main-saree-image').src = thumb.src;
-            document.querySelectorAll('.slider-thumbnails img').forEach(t => t.classList.remove('active'));
+            mainImage.src = thumb.src;
+            thumbnails.forEach(t => t.classList.remove('active'));
             thumb.classList.add('active');
         });
     });
+
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+    if (colorSwatches.length > 0) {
+        colorSwatches[0].classList.add('active');
+    }
+    colorSwatches.forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            colorSwatches.forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+        });
+    });
+
+    const quantityInput = document.getElementById('quantity-input');
+    document.getElementById('quantity-minus').addEventListener('click', () => {
+        let currentValue = parseInt(quantityInput.value);
+        if (currentValue > 1) quantityInput.value = currentValue - 1;
+    });
+    document.getElementById('quantity-plus').addEventListener('click', () => {
+        quantityInput.value = parseInt(quantityInput.value) + 1;
+    });
+
     document.getElementById('add-to-order-btn').addEventListener('click', () => {
-        const selectedColor = document.getElementById('color-select').value;
-        const quantity = parseInt(document.getElementById('quantity-input').value);
+        const selectedColorEl = document.querySelector('.color-swatch.active');
+        if (!selectedColorEl) {
+            alert('Please select a color.');
+            return;
+        }
+        const selectedColor = selectedColorEl.dataset.color;
+        const quantity = parseInt(quantityInput.value);
         addToOrder(user, saree.id, selectedColor, quantity);
         alert(`${quantity} x ${saree.name} (${selectedColor}) added to your order!`);
     });
+
+    // Render related products
     const relatedGrid = document.getElementById('related-products-grid');
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
     relatedGrid.innerHTML = relatedSarees.map(rs => `
