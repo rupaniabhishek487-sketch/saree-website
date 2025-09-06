@@ -25,7 +25,7 @@
             <section id="dashboard" class="admin-section">
                 <h2>Dashboard Overview</h2>
                 <div class="dashboard-stats">
-                    <div class="stat-card"><h3>Total Sarees</h3><p>5</p></div>
+                    <div class="stat-card"><h3>Total Sarees</h3><p id="total-sarees-stat">0</p></div>
                     <div class="stat-card"><h3>Total Parties</h3><p id="total-parties-stat">0</p></div>
                     <div class="stat-card"><h3>Total Orders</h3><p id="total-orders-stat">0</p></div>
                 </div>
@@ -38,10 +38,45 @@
                 </div>
             </section>
             
-            <!-- Add Saree Section (Placeholder) -->
+            <!-- Add Saree Section -->
             <section id="add-saree" class="admin-section" style="display:none;">
                 <h2>Add New Saree</h2>
-                <p>Feature coming soon.</p>
+                <form id="add-saree-form" class="admin-form">
+                    <div class="form-row">
+                        <div class="form-group"><label for="sareeName">Saree Name (Title)</label><input type="text" id="sareeName" required></div>
+                        <div class="form-group"><label for="sareeCategory">Category</label><input type="text" id="sareeCategory" required></div>
+                    </div>
+                    <div class="form-row">
+                         <div class="form-group"><label for="sareePrice">Price (₹)</label><input type="number" id="sareePrice" required></div>
+                        <div class="form-group"><label for="weaverName">Weaver Name (Admin only)</label><input type="text" id="weaverName" required></div>
+                    </div>
+                    <div class="form-group"><label for="sareeDescription">Description (Optional)</label><textarea id="sareeDescription" rows="4"></textarea></div>
+                    
+                    <!-- Dynamic Image Links -->
+                    <div class="form-group">
+                        <label>Image Links</label>
+                        <div id="image-links-container">
+                            <div class="dynamic-input-row">
+                               <input type="url" class="image-link-input" placeholder="https://example.com/image1.jpg" required>
+                            </div>
+                        </div>
+                        <button type="button" id="add-image-link-btn" class="btn-add-more">+ Add Another Image</button>
+                    </div>
+
+                    <!-- Dynamic Colors -->
+                     <div class="form-group">
+                        <label>Available Colors</label>
+                        <div id="colors-container">
+                             <div class="dynamic-input-row">
+                                <input type="text" class="color-input" placeholder="e.g., Royal Blue" required>
+                            </div>
+                        </div>
+                        <button type="button" id="add-color-btn" class="btn-add-more">+ Add Another Color</button>
+                    </div>
+
+                    <button type="submit" class="btn">Add Saree to Catalog</button>
+                    <p id="add-saree-status" class="form-status-message"></p>
+                </form>
             </section>
 
             <!-- Register Party Section -->
