@@ -108,6 +108,8 @@ async function loadSareesFromDB() {
 // --- Admin Dashboard Logic ---
 async function initAdminDashboard() {
     if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
+    
+    // Setup navigation
     const navLinks = document.querySelectorAll('.admin-nav-link');
     const sections = document.querySelectorAll('.admin-section');
     navLinks.forEach(link => {
@@ -120,13 +122,24 @@ async function initAdminDashboard() {
             sections.forEach(sec => sec.style.display = ('#' + sec.id === targetId) ? 'block' : 'none');
         });
     });
+    
+    // Attach form listeners
     document.getElementById('add-saree-form').addEventListener('submit', handleAddSaree);
+    document.getElementById('edit-saree-form').addEventListener('submit', handleUpdateSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
+    
+    // Add Saree Form - dynamic inputs
     document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container'));
     document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container'));
+
+    // Setup action listeners using event delegation
     document.getElementById('all-sarees-table-body').addEventListener('click', handleSareeTableClick);
     document.getElementById('all-parties-table-body').addEventListener('click', handlePartyTableClick);
+    document.getElementById('admin-orders-table-body').addEventListener('change', handleOrderStatusChange);
+
+
+    // Load and render all data
     await loadSareesFromDB();
     renderAllSareesTable();
     renderRegisteredPartiesTable();
@@ -137,7 +150,10 @@ function handleSareeTableClick(e) {
     if (e.target.classList.contains('delete-btn')) {
         const sareeId = e.target.dataset.id;
         const sareeName = e.target.closest('tr').cells[0].textContent;
-        showConfirmationModal(`Are you sure you want to delete the saree "${sareeName}"? This action cannot be undone.`, () => deleteSaree(sareeId));
+        showConfirmationModal(`Are you sure you want to delete the saree "${sareeName}"?`, () => deleteSaree(sareeId));
+    } else if (e.target.classList.contains('edit-btn')) {
+        const sareeId = e.target.dataset.id;
+        openEditSareeModal(sareeId);
     }
 }
 
@@ -151,7 +167,7 @@ function handlePartyTableClick(e) {
     if (e.target.classList.contains('delete-btn')) {
         const partyId = e.target.dataset.id;
         const partyName = e.target.closest('tr').cells[0].textContent;
-        showConfirmationModal(`Are you sure you want to delete the party "${partyName}"? This will permanently delete their login and cannot be undone.`, () => deleteParty(partyId));
+        showConfirmationModal(`Are you sure you want to delete the party "${partyName}"? This will delete their login and all past orders.`, () => deleteParty(partyId));
     }
 }
 
@@ -179,48 +195,99 @@ function renderAllSareesTable() {
     const tableBody = document.getElementById('all-sarees-table-body');
     if (!tableBody) return;
     document.getElementById('total-sarees-stat').textContent = state.sarees.length;
-    tableBody.innerHTML = state.sarees.map(s => `<tr><td>${s.name}</td><td>${s.category}</td><td>₹${Number(s.price).toLocaleString('en-IN')}</td><td>${s.weaver_name}</td><td>${new Date(s.created_at).toLocaleDateString()}</td><td><button class="delete-btn" data-id="${s.id}">Delete</button></td></tr>`).join('');
+    tableBody.innerHTML = state.sarees.map(s => `<tr><td>${s.name}</td><td>${s.category}</td><td>₹${Number(s.price).toLocaleString('en-IN')}</td><td>${s.weaver_name}</td><td>${new Date(s.created_at).toLocaleDateString()}</td>
+        <td>
+            <button class="action-btn edit" data-id="${s.id}">Edit</button>
+            <button class="action-btn delete" data-id="${s.id}">Delete</button>
+        </td></tr>`).join('');
 }
 
 async function renderRegisteredPartiesTable() {
     const tableBody = document.getElementById('all-parties-table-body');
     if (!tableBody) return;
     const { data, error } = await supabase.from('parties').select('*');
-    if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; console.error(error); return; }
+    if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; return; }
     document.getElementById('total-parties-stat').textContent = data.length;
-    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') : `<tr><td colspan="5">No parties registered.</td></tr>`;
+    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="action-btn delete" data-id="${p.id}">Delete</button></td></tr>`).join('') : `<tr><td colspan="5">No parties registered.</td></tr>`;
 }
 
 async function renderAdminOrdersTable() {
     const tableBody = document.getElementById('admin-orders-table-body');
     if(!tableBody) return;
     const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    if (error) { tableBody.innerHTML = `<tr><td colspan="7">Failed to load orders.</td></tr>`; console.error(error); return; }
+    if (error) { tableBody.innerHTML = `<tr><td colspan="6">Failed to load orders.</td></tr>`; return; }
     document.getElementById('total-orders-stat').textContent = data.length;
-    if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="7">No orders placed.</td></tr>`; return; }
+    if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="6">No orders placed.</td></tr>`; return; }
+    
+    const statuses = ['Pending', 'Processing', 'Shipped', 'Completed'];
     tableBody.innerHTML = data.map(order => {
         const itemsSummary = order.order_items.map(item => `${item.quantity} x ${item.sareeName} (${item.color})`).join('<br>');
-        return `<tr><td>${order.id}</td><td>${order.party_details.party_name}</td><td>${order.party_details.gst_number}</td><td>${order.party_details.address}</td><td>${itemsSummary}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>`;
+        const statusOptions = statuses.map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s}</option>`).join('');
+        return `<tr>
+            <td>${order.id}</td>
+            <td>${order.party_details.party_name}</td>
+            <td>${itemsSummary}</td>
+            <td>₹${order.grand_total.toLocaleString('en-IN')}</td>
+            <td>${new Date(order.created_at).toLocaleString()}</td>
+            <td><select class="order-status-select" data-order-id="${order.id}">${statusOptions}</select></td>
+        </tr>`;
     }).join('');
 }
 
-function addDynamicInput(containerId) {
-    const container = document.getElementById(containerId);
-    const firstInput = container.querySelector('input');
-    const row = document.createElement('div');
-    row.className = 'dynamic-input-row';
-    const input = document.createElement('input');
-    input.type = firstInput.type;
-    input.placeholder = firstInput.placeholder;
-    input.required = true;
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'btn-remove';
-    removeBtn.textContent = '−';
-    removeBtn.onclick = () => row.remove();
-    row.appendChild(input);
-    row.appendChild(removeBtn);
-    container.appendChild(row);
+async function handleOrderStatusChange(e) {
+    if (e.target.classList.contains('order-status-select')) {
+        const orderId = e.target.dataset.orderId;
+        const newStatus = e.target.value;
+        const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+        if (error) {
+            alert('Failed to update status.');
+        }
+    }
+}
+
+function openEditSareeModal(sareeId) {
+    const saree = state.sarees.find(s => s.id === sareeId);
+    if (!saree) return;
+
+    const modal = document.getElementById('edit-saree-modal');
+    document.getElementById('editSareeId').value = saree.id;
+    document.getElementById('editSareeName').value = saree.name;
+    document.getElementById('editSareeCategory').value = saree.category;
+    document.getElementById('editSareePrice').value = saree.price;
+    document.getElementById('editWeaverName').value = saree.weaver_name;
+    document.getElementById('editSareeDescription').value = saree.description || '';
+    
+    modal.style.display = 'block';
+    modal.querySelector('.close-button').onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
+}
+
+async function handleUpdateSaree(e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('edit-saree-status');
+    statusEl.textContent = 'Saving...';
+    statusEl.className = 'form-status-message';
+    
+    const sareeId = document.getElementById('editSareeId').value;
+    const updatedSaree = {
+        name: document.getElementById('editSareeName').value,
+        category: document.getElementById('editSareeCategory').value,
+        price: Number(document.getElementById('editSareePrice').value),
+        weaver_name: document.getElementById('editWeaverName').value,
+        description: document.getElementById('editSareeDescription').value,
+    };
+
+    const { error } = await supabase.from('sarees').update(updatedSaree).eq('id', sareeId);
+    if (error) {
+        statusEl.textContent = `Error: ${error.message}`;
+        statusEl.classList.add('error');
+    } else {
+        statusEl.textContent = 'Changes saved successfully!';
+        statusEl.classList.add('success');
+        await loadSareesFromDB();
+        renderAllSareesTable();
+        setTimeout(() => document.getElementById('edit-saree-modal').style.display = 'none', 1500);
+    }
 }
 
 async function handleAddSaree(e) {
@@ -243,7 +310,6 @@ async function handleAddSaree(e) {
         renderAllSareesTable();
     }
 }
-
 async function handleRegisterParty(e) {
     e.preventDefault();
     const statusEl = document.getElementById('register-party-status');
@@ -259,14 +325,13 @@ async function handleRegisterParty(e) {
         else { statusEl.textContent = 'Party registered successfully!'; statusEl.classList.add('success'); e.target.reset(); await renderRegisteredPartiesTable(); }
     } else { statusEl.textContent = 'User could not be created.'; statusEl.classList.add('error'); }
 }
-
 async function exportOrdersToCSV() {
     const { data, error } = await supabase.from('orders').select('*');
     if (error || !data) { alert("Could not fetch orders to export."); return; }
-    let csvContent = "data:text/csv;charset=utf-8,OrderID,Date,PartyName,GST,Address,Items,Total\n";
+    let csvContent = "data:text/csv;charset=utf-8,OrderID,Date,PartyName,GST,Address,Items,Total,Status\n";
     data.forEach(order => {
         const itemsStr = order.order_items.map(i => `${i.quantity}x ${i.sareeName} (${i.color})`).join('; ');
-        const row = [order.id, new Date(order.created_at).toLocaleString(), `"${order.party_details.party_name}"`, order.party_details.gst_number, `"${order.party_details.address.replace(/\n/g, ' ')}"`, `"${itemsStr}"`, order.grand_total].join(',');
+        const row = [order.id, new Date(order.created_at).toLocaleString(), `"${order.party_details.party_name}"`, order.party_details.gst_number, `"${order.party_details.address.replace(/\n/g, ' ')}"`, `"${itemsStr}"`, order.grand_total, order.status].join(',');
         csvContent += row + "\r\n";
     });
     const link = document.createElement("a");
@@ -301,13 +366,7 @@ function updateProductGrid() {
 function renderSarees(sarees) {
     const productGrid = document.getElementById('product-grid');
     if (!productGrid) return;
-    productGrid.innerHTML = sarees.length === 0 
-        ? `<p class="empty-cart-message">No sarees found.</p>`
-        : sarees.map(saree => `
-            <div class="product-card" onclick="window.location.href='product.html?id=${saree.id}'">
-                <div class="product-image-container"><img src="${saree.images[0]}" alt="${saree.name}"></div>
-                <div class="product-info"><h3>${saree.name}</h3><p>${saree.description ? saree.description.substring(0, 80) + '...' : ''}</p><div class="product-price">₹${Number(saree.price).toLocaleString('en-IN')}</div></div>
-            </div>`).join('');
+    productGrid.innerHTML = sarees.length === 0 ? `<p class="empty-cart-message">No sarees found.</p>` : sarees.map(saree => `<div class="product-card" onclick="window.location.href='product.html?id=${saree.id}'"><div class="product-image-container"><img src="${saree.images[0]}" alt="${saree.name}"></div><div class="product-info"><h3>${saree.name}</h3><p>${saree.description ? saree.description.substring(0, 80) + '...' : ''}</p><div class="product-price">₹${Number(saree.price).toLocaleString('en-IN')}</div></div></div>`).join('');
 }
 // Orders Page Functions
 async function initOrdersPage(user) {
@@ -319,6 +378,7 @@ async function initOrdersPage(user) {
     closeButtons.forEach(btn => btn.onclick = closeAndRedirect);
     window.onclick = event => { if (event.target == modal) closeAndRedirect(); };
     renderOrderTable(user);
+    renderPastOrders(user);
 }
 async function placeOrder(user) {
     const userOrderItems = state.orders[user.id] || [];
@@ -339,10 +399,11 @@ async function placeOrder(user) {
     }
 }
 function renderOrderTable(user) {
+    const container = document.getElementById('current-order-container');
     const orderItemsBody = document.getElementById('order-items-body');
     const orderTotalSection = document.getElementById('order-total-section');
     const userOrder = state.orders[user.id] || [];
-    if (userOrder.length === 0) { document.querySelector('.order-summary-box').innerHTML = `<p class="empty-cart-message">Your order is empty.</p>`; return; }
+    if (userOrder.length === 0) { container.innerHTML = `<p class="empty-cart-message">Your current order is empty. Add items from the collection to get started.</p>`; return; }
     let total = 0;
     orderItemsBody.innerHTML = userOrder.map((item, index) => {
         const saree = state.sarees.find(s => s.id === item.id);
@@ -355,6 +416,26 @@ function renderOrderTable(user) {
     document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('change', e => updateOrderItemQuantity(user, e.target.dataset.index, parseInt(e.target.value))));
     document.querySelectorAll('.remove-item-btn').forEach(btn => btn.addEventListener('click', e => removeOrderItem(user, e.target.dataset.index)));
     document.getElementById('place-order-btn').addEventListener('click', () => placeOrder(user));
+}
+async function renderPastOrders(user) {
+    const container = document.getElementById('past-orders-container');
+    const { data, error } = await supabase.from('orders').select('*').eq('party_id', user.id).order('created_at', { ascending: false });
+    if (error) { container.innerHTML = `<p class="empty-cart-message">Could not load past orders.</p>`; return; }
+    if (data.length === 0) { container.innerHTML = `<p class="empty-cart-message">You have no past orders.</p>`; return; }
+    container.innerHTML = `<table class="orders-table">
+        <thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>
+            ${data.map(order => `
+                <tr>
+                    <td>#${order.id}</td>
+                    <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                    <td>${order.order_items.length} items</td>
+                    <td>₹${order.grand_total.toLocaleString('en-IN')}</td>
+                    <td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>`;
 }
 function updateOrderItemQuantity(user, index, quantity) { if (quantity > 0) { state.orders[user.id][index].quantity = quantity; localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); } }
 function removeOrderItem(user, index) { state.orders[user.id].splice(index, 1); localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); }
