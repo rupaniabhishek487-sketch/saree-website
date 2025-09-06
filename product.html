@@ -6,14 +6,18 @@
     <title>Product Details - Narendra Sarees Wholesale</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.1">
+    <link rel="stylesheet" href="style.css?v=1.2">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
 </head>
 <body class="fade-in">
+    <div class="nav-overlay"></div>
     <header class="sticky-nav">
         <div class="container">
             <div class="navbar">
-                <a href="home.html" class="logo">Narendra Sarees Wholesale</a>
+                <a href="home.html" class="logo">
+                    <span class="desktop-logo">Narendra Sarees Wholesale</span>
+                    <span class="mobile-logo">Narendra</span>
+                </a>
                 <nav class="main-nav">
                     <ul class="nav-links">
                         <li><a href="home.html">Home</a></li>
@@ -31,9 +35,7 @@
     </header>
     <main>
         <section class="product-detail-section">
-            <div class="container" id="product-detail-container">
-                <!-- Product details and the new multi-order form will be injected here -->
-            </div>
+            <div class="container" id="product-detail-container"></div>
         </section>
         <section class="related-products-section">
             <div class="container">
@@ -49,6 +51,6 @@
     </footer>
     <button id="scrollToTopBtn" title="Go to top">↑</button>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="script.js?v=1.1"></script>
+    <script type="module" src="script.js?v=1.2"></script>
 </body>
 </html>
