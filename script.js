@@ -136,7 +136,6 @@ async function initAdminDashboard() {
 }
 
 function handleSareeTableClick(e) {
-    // CORRECTED: Looking for 'delete' and 'edit' classes
     if (e.target.classList.contains('delete')) {
         const sareeId = e.target.dataset.id;
         const sareeName = e.target.closest('tr').cells[0].textContent;
@@ -154,7 +153,6 @@ async function deleteSaree(sareeId) {
 }
 
 function handlePartyTableClick(e) {
-    // CORRECTED: Looking for 'delete' class
     if (e.target.classList.contains('delete')) {
         const partyId = e.target.dataset.id;
         const partyName = e.target.closest('tr').cells[0].textContent;
@@ -223,8 +221,13 @@ async function handleOrderStatusChange(e) {
 }
 
 function openEditSareeModal(sareeId) {
-    const saree = state.sarees.find(s => s.id === sareeId);
-    if (!saree) return;
+    // CORRECTED: Convert string ID from dataset to a number
+    const saree = state.sarees.find(s => s.id === parseInt(sareeId));
+    if (!saree) {
+        console.error("Saree not found for ID:", sareeId);
+        return;
+    }
+
     const modal = document.getElementById('edit-saree-modal');
     document.getElementById('editSareeId').value = saree.id;
     document.getElementById('editSareeName').value = saree.name;
@@ -232,6 +235,7 @@ function openEditSareeModal(sareeId) {
     document.getElementById('editSareePrice').value = saree.price;
     document.getElementById('editWeaverName').value = saree.weaver_name;
     document.getElementById('editSareeDescription').value = saree.description || '';
+    
     modal.style.display = 'block';
     modal.querySelector('.close-button').onclick = () => modal.style.display = 'none';
     window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
@@ -242,6 +246,7 @@ async function handleUpdateSaree(e) {
     const statusEl = document.getElementById('edit-saree-status');
     statusEl.textContent = 'Saving...';
     statusEl.className = 'form-status-message';
+    
     const sareeId = document.getElementById('editSareeId').value;
     const updatedSaree = {
         name: document.getElementById('editSareeName').value,
@@ -250,6 +255,7 @@ async function handleUpdateSaree(e) {
         weaver_name: document.getElementById('editWeaverName').value,
         description: document.getElementById('editSareeDescription').value,
     };
+
     const { error } = await supabase.from('sarees').update(updatedSaree).eq('id', sareeId);
     if (error) {
         statusEl.textContent = `Error: ${error.message}`;
@@ -259,7 +265,11 @@ async function handleUpdateSaree(e) {
         statusEl.classList.add('success');
         await loadSareesFromDB();
         renderAllSareesTable();
-        setTimeout(() => document.getElementById('edit-saree-modal').style.display = 'none', 1500);
+        setTimeout(() => {
+            document.getElementById('edit-saree-modal').style.display = 'none';
+            statusEl.textContent = '';
+            statusEl.className = 'form-status-message';
+        }, 1500);
     }
 }
 
