@@ -1,348 +1,400 @@
-/* --- Global Styles & Variables --- */
-:root {
-    --primary-color: #333;
-    --secondary-color: #7a7a7a;
-    --accent-color: #c5a47e; /* Gold accent */
-    --background-color: #fdfdfd;
-    --card-background: #ffffff;
-    --border-color: #eaeaea;
-    --danger-color: #dc3545;
-    --font-primary: 'Poppins', sans-serif;
-    --font-secondary: 'Montserrat', sans-serif;
-    --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.1);
-    --border-radius: 8px;
+// --- Supabase Configuration & Initialization ---
+const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
+
+const { createClient } = window.supabase;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// --- Local State Management ---
+let state = {
+    sarees: [],
+    orders: JSON.parse(localStorage.getItem('userOrders')) || {},
+};
+
+// --- Main Entry Point ---
+document.addEventListener('DOMContentLoaded', () => {
+    const page = window.location.pathname.split("/").pop() || 'index.html';
+    setupUniversalListeners();
+    switch (page) {
+        case 'index.html': initLoginPage(); break;
+        case 'admin.html': initAdminLoginPage(); break;
+        case 'home.html': securePage(initHomePage); break;
+        case 'product.html': securePage(initProductPage); break;
+        case 'orders.html': securePage(initOrdersPage); break;
+        case 'admin-dashboard.html': initAdminDashboard(); break;
+    }
+});
+
+// --- Security & Page Guards ---
+async function securePage(pageFunction) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; } 
+    else { await loadSareesFromDB(); pageFunction(session.user); }
 }
 
-body {
-    font-family: var(--font-secondary);
-    background-color: var(--background-color);
-    color: var(--primary-color);
-    margin: 0;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
+// --- Universal Listeners ---
+function setupUniversalListeners() {
+    document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+    if (scrollToTopBtn) {
+        window.onscroll = () => { scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "block" : "none"; };
+        scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    }
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+// --- Auth Functions ---
+async function handleLogout(e) { 
+    e.preventDefault(); 
+    sessionStorage.removeItem('isAdminAuthenticated'); 
+    localStorage.removeItem('userOrders'); 
+    const { error } = await supabase.auth.signOut();
+    if (!error) { window.location.href = 'index.html'; }
 }
 
-/* --- Animations --- */
-.fade-in {
-    animation: fadeInAnimation 0.8s ease-in-out;
+function initLoginPage() { 
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        const savedEmail = localStorage.getItem('rememberedEmail');
+        if (savedEmail) {
+            document.getElementById('username').value = savedEmail;
+            document.getElementById('remember-me').checked = true;
+        }
+        loginForm.addEventListener('submit', handleLogin);
+    }
 }
-@keyframes fadeInAnimation {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const rememberMe = document.getElementById('remember-me').checked;
+    const errorEl = document.getElementById('login-error');
+    errorEl.textContent = 'Logging in...';
+
+    if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+    } else {
+        localStorage.removeItem('rememberedEmail');
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { errorEl.textContent = "Invalid email or password."; } 
+    else { window.location.href = 'home.html'; }
 }
 
-/* --- Buttons --- */
-.btn {
-    display: inline-block;
-    background-color: var(--accent-color);
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: var(--border-radius);
-    font-family: var(--font-primary);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    font-size: 0.9rem;
+function initAdminLoginPage() { 
+    const adminForm = document.getElementById('admin-login-form');
+    if (adminForm) {
+        adminForm.addEventListener('submit', handleAdminLogin);
+    }
 }
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-}
-.btn-danger { background-color: var(--danger-color); }
-.btn-danger:hover { background-color: #c82333; }
-.btn-secondary { background-color: #6c757d; }
-.btn-secondary:hover { background-color: #5a6268; }
-.btn-login {
-    width: 100%;
-    padding: 14px;
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: var(--border-radius);
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-.btn-login:hover {
-    background-color: #b38f67;
-}
-.btn-add-more {
-    background: none;
-    border: 1px solid var(--accent-color);
-    color: var(--accent-color);
-    padding: 8px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    margin-top: 10px;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-.btn-add-more:hover {
-    background-color: var(--accent-color);
-    color: white;
-}
-.delete-btn {
-    background-color: var(--danger-color);
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-.delete-btn:hover {
-    background-color: #c82333;
+function handleAdminLogin(e) {
+    e.preventDefault();
+    const ADMIN_PASS = "SareeAdmin2025";
+    const password = document.getElementById('admin-password').value;
+    const errorEl = document.getElementById('admin-login-error');
+    if (password === ADMIN_PASS) {
+        sessionStorage.setItem('isAdminAuthenticated', 'true');
+        window.location.href = 'admin-dashboard.html';
+    } else { errorEl.textContent = "Incorrect password."; }
 }
 
-/* --- Header & Navigation --- */
-.sticky-nav {
-    position: sticky;
-    top: 0;
-    width: 100%;
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 0;
-}
-.logo {
-    font-family: var(--font-primary);
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    text-decoration: none;
-}
-.nav-links {
-    list-style: none;
-    display: flex;
-    margin: 0;
-    padding: 0;
-}
-.nav-links li {
-    margin-left: 30px;
-}
-.nav-links a {
-    text-decoration: none;
-    color: var(--secondary-color);
-    font-weight: 500;
-    padding: 5px 0;
-    position: relative;
-    transition: color 0.3s ease;
-}
-.nav-links a:hover, .nav-links a.active {
-    color: var(--primary-color);
-}
-.nav-links a::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background-color: var(--accent-color);
-    transition: width 0.3s ease;
-}
-.nav-links a:hover::after, .nav-links a.active::after {
-    width: 100%;
+// --- Data Fetching ---
+async function loadSareesFromDB() {
+    const { data, error } = await supabase.from('sarees').select('*').order('created_at', { ascending: false });
+    if (!error) { state.sarees = data; }
+    else { console.error("Error fetching sarees:", error); }
 }
 
-/* --- Login & Admin Login Pages --- */
-.login-body {
-    background-color: #f4f0ec;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-.login-container {
-    width: 100%;
-    max-width: 400px;
-}
-.login-box {
-    background-color: white;
-    padding: 40px;
-    border-radius: var(--border-radius);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    text-align: center;
-}
-.login-title {
-    font-family: var(--font-primary);
-    font-size: 2rem;
-    margin: 0 0 10px 0;
-}
-.login-subtitle {
-    color: var(--secondary-color);
-    margin-bottom: 30px;
-}
-.input-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
-.input-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-}
-.input-group input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-sizing: border-box;
-}
-.remember-me-group {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-}
-.remember-me-group label {
-    margin-left: 8px;
-    color: var(--secondary-color);
-    cursor: pointer;
-}
-.remember-me-group input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-.login-error-message {
-    color: var(--danger-color);
-    margin-top: 15px;
-    font-size: 0.9rem;
-    height: 1.2em;
+// --- Admin Dashboard Logic ---
+async function initAdminDashboard() {
+    if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
+    const navLinks = document.querySelectorAll('.admin-nav-link');
+    const sections = document.querySelectorAll('.admin-section');
+    navLinks.forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const targetId = e.target.getAttribute('href');
+            if (e.target.id === 'logout-btn' || targetId === '#') return;
+            navLinks.forEach(l => l.classList.remove('active'));
+            e.target.classList.add('active');
+            sections.forEach(sec => sec.style.display = ('#' + sec.id === targetId) ? 'block' : 'none');
+        });
+    });
+    document.getElementById('add-saree-form').addEventListener('submit', handleAddSaree);
+    document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
+    document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
+    document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container'));
+    document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container'));
+    document.getElementById('all-sarees-table-body').addEventListener('click', handleSareeTableClick);
+    document.getElementById('all-parties-table-body').addEventListener('click', handlePartyTableClick);
+    await loadSareesFromDB();
+    renderAllSareesTable();
+    renderRegisteredPartiesTable();
+    renderAdminOrdersTable();
 }
 
-/* --- Product Detail Page --- */
-.product-detail-section { padding: 60px 0; }
-.product-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: start; }
-.product-image-gallery .main-image img { width: 100%; border-radius: var(--border-radius); box-shadow: var(--shadow); aspect-ratio: 3/4; object-fit: cover; }
-.thumbnails { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
-.thumbnails img { width: 100%; border-radius: 5px; cursor: pointer; opacity: 0.6; transition: all 0.3s ease; border: 2px solid transparent; }
-.thumbnails img.active, .thumbnails img:hover { opacity: 1; border-color: var(--accent-color); }
-.product-details-content h1 { font-family: var(--font-primary); font-size: 2.5rem; margin-top: 0; margin-bottom: 10px; }
-.product-details-content .price { font-size: 2rem; color: var(--accent-color); font-weight: 600; margin-bottom: 20px; }
-.product-details-content .description { color: var(--secondary-color); margin-bottom: 30px; }
-.options-group { margin-bottom: 30px; }
-.options-group label { display: block; font-weight: 600; margin-bottom: 10px; }
-.color-swatches { display: flex; gap: 10px; }
-.color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); transition: transform 0.2s ease; }
-.color-swatch.active { border-color: var(--primary-color); transform: scale(1.1); }
-.quantity-selector { display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 50px; width: fit-content; }
-.quantity-selector button { background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 10px 20px; color: var(--secondary-color); }
-.quantity-selector input { width: 40px; text-align: center; border: none; font-size: 1.2rem; font-weight: 500; -moz-appearance: textfield; }
-.quantity-selector input::-webkit-outer-spin-button, .quantity-selector input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-#add-to-order-btn { width: 100%; padding: 15px; font-size: 1.1rem; }
-#add-to-order-btn i { margin-right: 10px; }
-.related-products-section { padding: 60px 0; background-color: #f8f9fa; }
-.related-products-section h2 { text-align: center; font-family: var(--font-primary); font-size: 2.2rem; margin-bottom: 40px; }
-
-/* --- Admin Dashboard --- */
-.admin-body { background-color: #f8f9fa; }
-.admin-container { display: flex; min-height: 100vh; }
-.admin-sidebar { width: 260px; background-color: #343a40; color: white; padding: 20px; flex-shrink: 0; }
-.admin-logo { font-family: var(--font-primary); text-align: center; margin-bottom: 40px; font-size: 1.8rem; }
-.admin-nav a { display: block; color: #adb5bd; text-decoration: none; padding: 15px 20px; border-radius: var(--border-radius); margin-bottom: 10px; transition: all 0.3s ease; }
-.admin-nav a:hover, .admin-nav a.active { background-color: #495057; color: white; }
-.admin-main-content { flex-grow: 1; padding: 40px; }
-.admin-section { background-color: white; padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-.admin-section h2 { font-family: var(--font-primary); margin-top: 0; margin-bottom: 30px; }
-.dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
-.stat-card { background-color: #f8f9fa; padding: 20px; border-radius: var(--border-radius); border-left: 5px solid var(--accent-color); }
-.stat-card h3 { margin: 0 0 10px 0; font-size: 1rem; color: var(--secondary-color); }
-.stat-card p { margin: 0; font-size: 2rem; font-weight: 600; }
-.table-container { overflow-x: auto; }
-.admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-.admin-table th, .admin-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-.admin-table th { background-color: #f8f9fa; font-weight: 600; }
-.admin-form { max-width: 800px; }
-.form-row { display: flex; gap: 20px; margin-bottom: 20px; }
-.form-group { flex: 1; margin-bottom: 20px; }
-.form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-.form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: var(--border-radius); box-sizing: border-box; }
-.dynamic-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.dynamic-input-row input { flex-grow: 1; margin-bottom: 0; }
-.btn-remove { background-color: var(--danger-color); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: bold; line-height: 30px; text-align: center; }
-.form-status-message { margin-top: 15px; padding: 10px; border-radius: var(--border-radius); font-weight: 500; display: none; }
-.form-status-message.success { display: block; background-color: #d4edda; color: #155724; }
-.form-status-message.error { display: block; background-color: #f8d7da; color: #721c24; }
-
-/* --- Orders Page & Modal --- */
-.orders-section { padding: 60px 0; }
-.order-summary-box { background-color: white; padding: 30px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
-.party-details-review { border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 20px; }
-.orders-table { width: 100%; border-collapse: collapse; }
-.orders-table th, .orders-table td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-.quantity-input { width: 60px; padding: 5px; text-align: center; }
-.remove-item-btn { background: none; border: none; color: var(--danger-color); font-size: 1.2rem; cursor: pointer; }
-.order-total { text-align: right; margin-top: 20px; font-size: 1.5rem; font-weight: bold; }
-.empty-cart-message { text-align: center; font-size: 1.2rem; color: var(--secondary-color); padding: 40px; }
-.modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); animation: fadeInAnimation 0.3s; }
-.modal-content { background-color: #fefefe; margin: 15% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: var(--border-radius); text-align: center; }
-.close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-.close-button:hover, .close-button:focus { color: black; }
-.modal-actions { margin-top: 20px; display: flex; justify-content: center; gap: 15px; }
-
-/* --- Universal Elements (Footer, etc.) --- */
-footer { background-color: #f4f4f4; text-align: center; padding: 20px 0; margin-top: 60px; font-size: 0.9rem; color: var(--secondary-color); }
-#scrollToTopBtn { display: none; position: fixed; bottom: 30px; right: 30px; z-index: 1001; border: none; outline: none; background-color: var(--accent-color); color: white; cursor: pointer; padding: 10px; border-radius: 50%; width: 50px; height: 50px; font-size: 24px; box-shadow: var(--shadow-hover); transition: background-color 0.3s ease; }
-#scrollToTopBtn:hover { background-color: #b38f67; }
-
-/* --- Home Page Specifics --- */
-.banner { padding: 80px 0; text-align: center; background: #f4f0ec; }
-.banner h1 { font-family: var(--font-primary); font-size: 3rem; margin-bottom: 15px; }
-.banner p { font-size: 1.1rem; color: var(--secondary-color); max-width: 600px; margin: 0 auto; }
-.categories-section { padding: 60px 0; text-align: center; }
-.categories-section h2, .product-section h2 { font-family: var(--font-primary); font-size: 2.2rem; margin-bottom: 40px; }
-.category-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-.category-link { background-color: var(--card-background); padding: 15px 30px; border-radius: 50px; text-decoration: none; color: var(--primary-color); font-weight: 500; box-shadow: var(--shadow); transition: all 0.3s ease; }
-.category-link:hover { background-color: var(--accent-color); color: white; transform: translateY(-3px); box-shadow: var(--shadow-hover); }
-.product-section { padding: 60px 0; }
-.filter-sort-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 20px; }
-.search-bar-container { position: relative; flex-grow: 1; max-width: 400px; }
-.search-bar-container i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--secondary-color); }
-#search-bar { width: 100%; padding: 12px 12px 12px 40px; border: 1px solid var(--border-color); border-radius: var(--border-radius); font-family: var(--font-secondary); font-size: 1rem; }
-.sort-container { display: flex; align-items: center; gap: 10px; }
-#sort-options { padding: 12px; border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: white; }
-.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
-.product-card { background-color: var(--card-background); border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow); transition: all 0.3s ease; cursor: pointer; }
-.product-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); }
-.product-image-container { overflow: hidden; }
-.product-card img { width: 100%; height: auto; display: block; aspect-ratio: 3 / 4; object-fit: cover; transition: transform 0.4s ease; }
-.product-card:hover img { transform: scale(1.05); }
-.product-info { padding: 20px; }
-.product-info h3 { margin: 0 0 10px 0; font-family: var(--font-primary); font-size: 1.2rem; }
-.product-info p { margin: 0 0 15px 0; font-size: 0.9rem; color: var(--secondary-color); }
-.product-price { font-weight: 600; font-size: 1.2rem; color: var(--accent-color); }
-
-/* --- Responsive Design --- */
-@media (max-width: 900px) {
-    .product-detail-grid { grid-template-columns: 1fr; }
+function handleSareeTableClick(e) {
+    if (e.target.classList.contains('delete-btn')) {
+        const sareeId = e.target.dataset.id;
+        const sareeName = e.target.closest('tr').cells[0].textContent;
+        showConfirmationModal(`Are you sure you want to delete the saree "${sareeName}"? This action cannot be undone.`, () => deleteSaree(sareeId));
+    }
 }
-@media (max-width: 768px) {
-    .nav-links { display: none; }
-    .banner h1 { font-size: 2.2rem; }
-    .filter-sort-controls { flex-direction: column; align-items: stretch; }
-    .search-bar-container { max-width: none; }
-    .admin-container { flex-direction: column; }
-    .admin-sidebar { width: 100%; height: auto; box-sizing: border-box; }
-    .form-row { flex-direction: column; gap: 0; }
+
+async function deleteSaree(sareeId) {
+    const { error } = await supabase.from('sarees').delete().eq('id', sareeId);
+    if (error) { alert(`Error deleting saree: ${error.message}`); } 
+    else { await loadSareesFromDB(); renderAllSareesTable(); }
+}
+
+function handlePartyTableClick(e) {
+    if (e.target.classList.contains('delete-btn')) {
+        const partyId = e.target.dataset.id;
+        const partyName = e.target.closest('tr').cells[0].textContent;
+        showConfirmationModal(`Are you sure you want to delete the party "${partyName}"? This will permanently delete their login and cannot be undone.`, () => deleteParty(partyId));
+    }
+}
+
+async function deleteParty(partyId) {
+    const { error } = await supabase.rpc('delete_party', { party_id: partyId });
+    if (error) { alert(`Error deleting party: ${error.message}`); } 
+    else { await renderRegisteredPartiesTable(); }
+}
+
+function showConfirmationModal(message, onConfirm) {
+    const modal = document.getElementById('confirmation-modal-admin');
+    const messageEl = document.getElementById('modal-message');
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    const cancelBtn = document.getElementById('modal-cancel-btn');
+    messageEl.textContent = message;
+    modal.style.display = 'block';
+    const confirmHandler = () => { onConfirm(); hideModal(); };
+    const hideModal = () => { modal.style.display = 'none'; confirmBtn.removeEventListener('click', confirmHandler); };
+    confirmBtn.addEventListener('click', confirmHandler, { once: true });
+    cancelBtn.onclick = hideModal;
+    window.onclick = (event) => { if (event.target == modal) { hideModal(); } };
+}
+
+function renderAllSareesTable() {
+    const tableBody = document.getElementById('all-sarees-table-body');
+    if (!tableBody) return;
+    document.getElementById('total-sarees-stat').textContent = state.sarees.length;
+    tableBody.innerHTML = state.sarees.map(s => `<tr><td>${s.name}</td><td>${s.category}</td><td>₹${Number(s.price).toLocaleString('en-IN')}</td><td>${s.weaver_name}</td><td>${new Date(s.created_at).toLocaleDateString()}</td><td><button class="delete-btn" data-id="${s.id}">Delete</button></td></tr>`).join('');
+}
+
+async function renderRegisteredPartiesTable() {
+    const tableBody = document.getElementById('all-parties-table-body');
+    if (!tableBody) return;
+    const { data, error } = await supabase.from('parties').select('*');
+    if (error) { tableBody.innerHTML = `<tr><td colspan="5">Failed to load parties.</td></tr>`; console.error(error); return; }
+    document.getElementById('total-parties-stat').textContent = data.length;
+    tableBody.innerHTML = data.length > 0 ? data.map(p => `<tr><td>${p.party_name}</td><td>${p.email}</td><td>${p.gst_number}</td><td>${p.address}</td><td><button class="delete-btn" data-id="${p.id}">Delete</button></td></tr>`).join('') : `<tr><td colspan="5">No parties registered.</td></tr>`;
+}
+
+async function renderAdminOrdersTable() {
+    const tableBody = document.getElementById('admin-orders-table-body');
+    if(!tableBody) return;
+    const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (error) { tableBody.innerHTML = `<tr><td colspan="7">Failed to load orders.</td></tr>`; console.error(error); return; }
+    document.getElementById('total-orders-stat').textContent = data.length;
+    if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="7">No orders placed.</td></tr>`; return; }
+    tableBody.innerHTML = data.map(order => {
+        const itemsSummary = order.order_items.map(item => `${item.quantity} x ${item.sareeName} (${item.color})`).join('<br>');
+        return `<tr><td>${order.id}</td><td>${order.party_details.party_name}</td><td>${order.party_details.gst_number}</td><td>${order.party_details.address}</td><td>${itemsSummary}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td>${new Date(order.created_at).toLocaleString()}</td></tr>`;
+    }).join('');
+}
+
+function addDynamicInput(containerId) {
+    const container = document.getElementById(containerId);
+    const firstInput = container.querySelector('input');
+    const row = document.createElement('div');
+    row.className = 'dynamic-input-row';
+    const input = document.createElement('input');
+    input.type = firstInput.type;
+    input.placeholder = firstInput.placeholder;
+    input.required = true;
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove';
+    removeBtn.textContent = '−';
+    removeBtn.onclick = () => row.remove();
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+}
+
+async function handleAddSaree(e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('add-saree-status');
+    statusEl.textContent = 'Adding Saree...';
+    statusEl.className = 'form-status-message';
+    const images = Array.from(document.querySelectorAll('#image-links-container .dynamic-input-row input')).map(input => input.value);
+    const colors = Array.from(document.querySelectorAll('#colors-container .dynamic-input-row input')).map(input => input.value);
+    const newSaree = { name: document.getElementById('sareeName').value, category: document.getElementById('sareeCategory').value, price: Number(document.getElementById('sareePrice').value), weaver_name: document.getElementById('weaverName').value, description: document.getElementById('sareeDescription').value, images, colors };
+    const { error } = await supabase.from('sarees').insert(newSaree);
+    if (error) { statusEl.textContent = `Error: ${error.message}`; statusEl.classList.add('error'); } 
+    else {
+        statusEl.textContent = 'Saree added successfully!';
+        statusEl.classList.add('success');
+        e.target.reset();
+        document.getElementById('image-links-container').innerHTML = '<div class="dynamic-input-row"><input type="url" placeholder="https://example.com/image.jpg" required></div>';
+        document.getElementById('colors-container').innerHTML = '<div class="dynamic-input-row"><input type="text" placeholder="e.g., Maroon" required></div>';
+        await loadSareesFromDB();
+        renderAllSareesTable();
+    }
+}
+
+async function handleRegisterParty(e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('register-party-status');
+    statusEl.textContent = 'Registering...';
+    statusEl.className = 'form-status-message';
+    const email = document.getElementById('partyEmail').value;
+    const password = document.getElementById('partyPassword').value;
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+    if (authError) { statusEl.textContent = `Auth Error: ${authError.message}`; statusEl.classList.add('error'); return; }
+    if (authData.user) {
+        const { error: dbError } = await supabase.from('parties').insert({ id: authData.user.id, party_name: document.getElementById('partyName').value, address: document.getElementById('partyAddress').value, gst_number: document.getElementById('partyGst').value, email: email });
+        if (dbError) { statusEl.textContent = `Database Error: ${dbError.message}`; statusEl.classList.add('error'); } 
+        else { statusEl.textContent = 'Party registered successfully!'; statusEl.classList.add('success'); e.target.reset(); await renderRegisteredPartiesTable(); }
+    } else { statusEl.textContent = 'User could not be created.'; statusEl.classList.add('error'); }
+}
+
+async function exportOrdersToCSV() {
+    const { data, error } = await supabase.from('orders').select('*');
+    if (error || !data) { alert("Could not fetch orders to export."); return; }
+    let csvContent = "data:text/csv;charset=utf-8,OrderID,Date,PartyName,GST,Address,Items,Total\n";
+    data.forEach(order => {
+        const itemsStr = order.order_items.map(i => `${i.quantity}x ${i.sareeName} (${i.color})`).join('; ');
+        const row = [order.id, new Date(order.created_at).toLocaleString(), `"${order.party_details.party_name}"`, order.party_details.gst_number, `"${order.party_details.address.replace(/\n/g, ' ')}"`, `"${itemsStr}"`, order.grand_total].join(',');
+        csvContent += row + "\r\n";
+    });
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", "saree_orders.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+// Home Page functions
+async function initHomePage(user) {
+    const { data } = await supabase.from('parties').select('party_name').eq('id', user.id).single();
+    if (data) document.getElementById('welcome-message').textContent = `Welcome, ${data.party_name}`;
+    document.getElementById('search-bar')?.addEventListener('input', updateProductGrid);
+    document.getElementById('sort-options')?.addEventListener('change', updateProductGrid);
+    const categories = [...new Set(state.sarees.map(s => s.category))];
+    const categoryGrid = document.getElementById('category-grid');
+    if (categoryGrid) { categoryGrid.innerHTML = categories.map(cat => `<a href="#" class="category-link" data-category="${cat}">${cat}</a>`).join(''); }
+    updateProductGrid();
+}
+function updateProductGrid() {
+    const searchTerm = document.getElementById('search-bar')?.value.toLowerCase() || '';
+    const sortValue = document.getElementById('sort-options')?.value || 'date-desc';
+    let filteredSarees = state.sarees.filter(saree => saree.name.toLowerCase().includes(searchTerm));
+    switch (sortValue) {
+        case 'price-asc': filteredSarees.sort((a, b) => a.price - b.price); break;
+        case 'price-desc': filteredSarees.sort((a, b) => b.price - a.price); break;
+        default: break;
+    }
+    renderSarees(filteredSarees);
+}
+function renderSarees(sarees) {
+    const productGrid = document.getElementById('product-grid');
+    if (!productGrid) return;
+    productGrid.innerHTML = sarees.length === 0 
+        ? `<p class="empty-cart-message">No sarees found.</p>`
+        : sarees.map(saree => `
+            <div class="product-card" onclick="window.location.href='product.html?id=${saree.id}'">
+                <div class="product-image-container"><img src="${saree.images[0]}" alt="${saree.name}"></div>
+                <div class="product-info"><h3>${saree.name}</h3><p>${saree.description ? saree.description.substring(0, 80) + '...' : ''}</p><div class="product-price">₹${Number(saree.price).toLocaleString('en-IN')}</div></div>
+            </div>`).join('');
+}
+// Orders Page Functions
+async function initOrdersPage(user) {
+    const { data } = await supabase.from('parties').select('*').eq('id', user.id).single();
+    if (data) { document.getElementById('party-details-review').innerHTML = `<h3>Your details for this order:</h3><p><strong>Name:</strong> ${data.party_name}</p><p><strong>Address:</strong> ${data.address}</p><p><strong>GST No:</strong> ${data.gst_number}</p>`; }
+    const modal = document.getElementById('confirmation-modal');
+    const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn');
+    const closeAndRedirect = () => { modal.style.display = "none"; window.location.href = 'home.html'; };
+    closeButtons.forEach(btn => btn.onclick = closeAndRedirect);
+    window.onclick = event => { if (event.target == modal) closeAndRedirect(); };
+    renderOrderTable(user);
+}
+async function placeOrder(user) {
+    const userOrderItems = state.orders[user.id] || [];
+    if (userOrderItems.length === 0) return alert("Your cart is empty.");
+    const { data: partyData } = await supabase.from('parties').select('*').eq('id', user.id).single();
+    if (!partyData) { alert("Could not verify your party details."); return; }
+    const itemsWithDetails = userOrderItems.map(item => {
+        const saree = state.sarees.find(s => s.id === item.id);
+        return { ...item, sareeName: saree.name, unitPrice: saree.price, totalPrice: item.quantity * saree.price }
+    });
+    const grandTotal = itemsWithDetails.reduce((total, item) => total + item.totalPrice, 0);
+    const { error } = await supabase.from('orders').insert({ party_id: user.id, party_details: partyData, order_items: itemsWithDetails, grand_total: grandTotal });
+    if (error) { alert(`Error placing order: ${error.message}`); } 
+    else {
+        delete state.orders[user.id];
+        localStorage.setItem('userOrders', JSON.stringify(state.orders));
+        document.getElementById('confirmation-modal').style.display = "block";
+    }
+}
+function renderOrderTable(user) {
+    const orderItemsBody = document.getElementById('order-items-body');
+    const orderTotalSection = document.getElementById('order-total-section');
+    const userOrder = state.orders[user.id] || [];
+    if (userOrder.length === 0) { document.querySelector('.order-summary-box').innerHTML = `<p class="empty-cart-message">Your order is empty.</p>`; return; }
+    let total = 0;
+    orderItemsBody.innerHTML = userOrder.map((item, index) => {
+        const saree = state.sarees.find(s => s.id === item.id);
+        if (!saree) return '';
+        const itemTotal = Number(saree.price) * item.quantity;
+        total += itemTotal;
+        return `<tr><td>${saree.name}</td><td>${item.color}</td><td><input type="number" value="${item.quantity}" min="1" class="quantity-input" data-index="${index}"></td><td>₹${Number(saree.price).toLocaleString('en-IN')}</td><td>₹${itemTotal.toLocaleString('en-IN')}</td><td><button class="remove-item-btn" data-index="${index}">✖</button></td></tr>`;
+    }).join('');
+    orderTotalSection.innerHTML = `<p>Grand Total: ₹${total.toLocaleString('en-IN')}</p><button class="btn" id="place-order-btn">Place Order</button>`;
+    document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('change', e => updateOrderItemQuantity(user, e.target.dataset.index, parseInt(e.target.value))));
+    document.querySelectorAll('.remove-item-btn').forEach(btn => btn.addEventListener('click', e => removeOrderItem(user, e.target.dataset.index)));
+    document.getElementById('place-order-btn').addEventListener('click', () => placeOrder(user));
+}
+function updateOrderItemQuantity(user, index, quantity) { if (quantity > 0) { state.orders[user.id][index].quantity = quantity; localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); } }
+function removeOrderItem(user, index) { state.orders[user.id].splice(index, 1); localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); }
+function addToOrder(user, sareeId, color, quantity) {
+    if (!user) return;
+    const userId = user.id;
+    if (!state.orders[userId]) state.orders[userId] = [];
+    const existingItemIndex = state.orders[userId].findIndex(item => item.id === sareeId && item.color === color);
+    if (existingItemIndex > -1) { state.orders[userId][existingItemIndex].quantity += quantity; } 
+    else { state.orders[userId].push({ id: sareeId, color, quantity }); }
+    localStorage.setItem('userOrders', JSON.stringify(state.orders));
+}
+// Product Page Logic
+function initProductPage(user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sareeId = parseInt(urlParams.get('id'));
+    const saree = state.sarees.find(s => s.id === sareeId);
+    if (!saree) { document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; return; }
+    const container = document.getElementById('product-detail-container');
+    container.innerHTML = `<div class="product-detail-grid"><div class="product-image-gallery"><div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image"></div><div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}</div></div><div class="product-details-content"><h1>${saree.name}</h1><p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p><p class="description">${saree.description || ''}</p><div class="options-group"><label>Color</label><div class="color-swatches">${saree.colors.map((color, index) => `<div class="color-swatch" data-color="${color}" title="${color}" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>`).join('')}</div></div><div class="options-group"><label>Quantity</label><div class="quantity-selector"><button id="quantity-minus">−</button><input type="number" id="quantity-input" value="1" min="1"><button id="quantity-plus">+</button></div></div><button class="btn" id="add-to-order-btn"><i class="fas fa-shopping-bag"></i> Add to Order</button></div></div>`;
+    const mainImage = document.getElementById('main-saree-image');
+    const thumbnails = document.querySelectorAll('.thumbnails img');
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', () => { mainImage.src = thumb.src; thumbnails.forEach(t => t.classList.remove('active')); thumb.classList.add('active'); });
+    });
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+    if (colorSwatches.length > 0) { colorSwatches[0].classList.add('active'); }
+    colorSwatches.forEach(swatch => { swatch.addEventListener('click', () => { colorSwatches.forEach(s => s.classList.remove('active')); swatch.classList.add('active'); }); });
+    const quantityInput = document.getElementById('quantity-input');
+    document.getElementById('quantity-minus').addEventListener('click', () => { let currentValue = parseInt(quantityInput.value); if (currentValue > 1) quantityInput.value = currentValue - 1; });
+    document.getElementById('quantity-plus').addEventListener('click', () => { quantityInput.value = parseInt(quantityInput.value) + 1; });
+    document.getElementById('add-to-order-btn').addEventListener('click', () => {
+        const selectedColorEl = document.querySelector('.color-swatch.active');
+        if (!selectedColorEl) { alert('Please select a color.'); return; }
+        const selectedColor = selectedColorEl.dataset.color;
+        const quantity = parseInt(quantityInput.value);
+        addToOrder(user, saree.id, selectedColor, quantity);
+        alert(`${quantity} x ${saree.name} (${selectedColor}) added to your order!`);
+    });
+    const relatedGrid = document.getElementById('related-products-grid');
+    const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
+    relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
 }
