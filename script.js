@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'orders.html': securePage(initOrdersPage); break;
         case 'admin-dashboard.html': initAdminDashboard(); break;
     }
+    setupMobileNav(); // Initialize mobile nav on all pages
 });
 
 // --- Security & Page Guards ---
@@ -40,18 +41,48 @@ function setupUniversalListeners() {
         window.onscroll = () => { scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "block" : "none"; };
         scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
-    const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
-    const mainNav = document.querySelector('.main-nav');
-    if (mobileNavToggle && mainNav) {
-        mobileNavToggle.addEventListener('click', () => {
-            const isVisible = mainNav.getAttribute('data-visible') === 'true';
-            mainNav.setAttribute('data-visible', !isVisible);
-            mobileNavToggle.setAttribute('aria-expanded', !isVisible);
-            mobileNavToggle.querySelector('i').className = isVisible ? 'fas fa-bars' : 'fas fa-times';
-            document.body.classList.toggle('nav-open');
-        });
-    }
 }
+
+// --- MENU TOGGLE — robust accessible behavior ---
+function setupMobileNav() {
+    const mobileToggle = document.querySelector('.mobile-nav-toggle');
+    const mainNav = document.querySelector('.main-nav');
+    const navOverlay = document.querySelector('.nav-overlay');
+
+    if (!mobileToggle || !mainNav || !navOverlay) return;
+
+    function openNav() {
+        mainNav.setAttribute('data-visible', 'true');
+        mobileToggle.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('nav-open');
+    }
+    function closeNav() {
+        mainNav.setAttribute('data-visible', 'false');
+        mobileToggle.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('nav-open');
+    }
+    
+    mobileToggle.addEventListener('click', () => {
+        const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
+        if (isOpen) closeNav();
+        else openNav();
+    });
+    
+    navOverlay.addEventListener('click', () => closeNav());
+
+    document.querySelectorAll('.main-nav .nav-links a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            if (window.innerWidth < 769) closeNav();
+        });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('nav-open')) {
+            closeNav();
+        }
+    });
+}
+
 
 // --- Auth Functions ---
 async function handleLogout(e) { 
@@ -471,7 +502,6 @@ function initProductPage(user) {
             </div>
         </div>`;
 
-    // --- Add Event Listeners ---
     document.querySelectorAll('.thumbnails img').forEach(thumb => {
         thumb.addEventListener('click', () => {
             document.getElementById('main-saree-image').src = thumb.src;
@@ -503,7 +533,7 @@ function initProductPage(user) {
                 addToOrder(user, saree.id, color, quantity);
                 itemsAdded.push(`${quantity} x ${color}`);
             }
-            input.value = 0; // Reset after adding
+            input.value = 0;
         });
 
         if (itemsAdded.length > 0) {
@@ -513,7 +543,6 @@ function initProductPage(user) {
         }
     });
 
-    // Render related products
     const relatedGrid = document.getElementById('related-products-grid');
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
     relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
