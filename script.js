@@ -15,7 +15,6 @@ let state = {
 document.addEventListener('DOMContentLoaded', () => {
     const page = window.location.pathname.split("/").pop() || 'index.html';
     
-    // Initialize functionalities based on the current page
     switch (page) {
         case 'index.html': initLoginPage(); break;
         case 'admin.html': initAdminLoginPage(); break;
@@ -25,62 +24,57 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'admin-dashboard.html': initAdminDashboard(); break;
     }
     
-    // Setup universal features like nav and scroll button on all pages
     setupUniversalListeners();
 });
 
 // --- Security & Page Guards ---
 async function securePage(pageFunction) {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { 
-        window.location.href = 'index.html'; 
-    } else { 
-        await loadSareesFromDB(); 
-        pageFunction(session.user); 
-    }
+    if (!session) { window.location.href = 'index.html'; } 
+    else { await loadSareesFromDB(); pageFunction(session.user); }
 }
 
-// --- Universal Listeners ---
+// --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
-    // Mobile Navigation Logic
     const mobileToggle = document.querySelector('.mobile-nav-toggle');
     const mainNav = document.querySelector('#main-nav');
     const navOverlay = document.querySelector('.nav-overlay');
 
     if (mobileToggle && mainNav && navOverlay) {
-        function openNav() {
-            mainNav.setAttribute('data-visible', 'true');
-            mobileToggle.setAttribute('aria-expanded', 'true');
-            document.body.classList.add('nav-open');
-        }
-        function closeNav() {
-            mainNav.setAttribute('data-visible', 'false');
-            mobileToggle.setAttribute('aria-expanded', 'false');
-            document.body.classList.remove('nav-open');
-        }
-        mobileToggle.addEventListener('click', () => {
-            const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
-            if (isOpen) closeNav(); else openNav();
-        });
-        navOverlay.addEventListener('click', closeNav);
-        document.querySelectorAll('#main-nav a').forEach(a => a.addEventListener('click', () => {
-            if (window.innerWidth < 769) closeNav();
-        }));
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.body.classList.contains('nav-open')) closeNav();
-        });
+      function openNav() {
+        mainNav.setAttribute('data-visible','true');
+        mobileToggle.setAttribute('aria-expanded','true');
+        document.body.classList.add('nav-open');
+      }
+      function closeNav() {
+        mainNav.setAttribute('data-visible','false');
+        mobileToggle.setAttribute('aria-expanded','false');
+        document.body.classList.remove('nav-open');
+      }
+      mobileToggle.addEventListener('click', () => {
+        const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
+        if (isOpen) closeNav(); else openNav();
+      });
+      navOverlay.addEventListener('click', closeNav);
+      document.querySelectorAll('#main-nav a').forEach(a => a.addEventListener('click', () => {
+        if (window.innerWidth < 769) closeNav();
+      }));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('nav-open')) closeNav();
+      });
+    } else {
+      document.querySelector('.site-header')?.classList.add('visible');
     }
-
-    // Logout Button (might be in main nav or mobile nav)
+    
     document.querySelectorAll('#logout-btn').forEach(btn => btn.addEventListener('click', handleLogout));
 
-    // Scroll to Top Button
     const scrollToTopBtn = document.getElementById('scrollToTopBtn');
     if (scrollToTopBtn) {
         window.onscroll = () => { scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "block" : "none"; };
         scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 }
+
 
 // --- Auth Functions ---
 async function handleLogout(e) { 
@@ -263,9 +257,21 @@ async function renderAdminOrdersTable() {
     if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="6">No orders placed.</td></tr>`; return; }
     const statuses = ['Pending', 'Processing', 'Shipped', 'Completed'];
     tableBody.innerHTML = data.map(order => {
-        const itemsSummary = order.order_items.map(item => `${item.quantity} x ${item.sareeName} (${item.color})`).join('<br>');
-        const statusOptions = statuses.map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s}</option>`).join('');
-        return `<tr><td>${order.id}</td><td>${order.party_details.party_name}</td><td>${itemsSummary}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td>${new Date(order.created_at).toLocaleString()}</td><td><select class="order-status-select" data-order-id="${order.id}">${statusOptions}</select></td></tr>`;
+        const orderDetails = order.order_items.map(item => `
+            <div><strong>Type:</strong> ${item.type}</div>
+            <div><strong>Design:</strong> ${item.design}</div>
+            <div><strong>Colors:</strong> ${item.colors.join(', ')}</div>
+            <div><strong>Qty:</strong> ${item.quantity}</div>
+        `).join('<hr style="margin: 5px 0; border-color: #eee;">');
+
+        return `<tr>
+            <td>${order.id}</td>
+            <td>${order.party_details.party_name}</td>
+            <td>${orderDetails}<br>${order.note ? `<span class="customer-note-display"><em>Note: ${order.note}</em></span>` : ''}</td>
+            <td>₹${order.grand_total.toLocaleString('en-IN')}</td>
+            <td>${new Date(order.created_at).toLocaleString()}</td>
+            <td><select class="order-status-select" data-order-id="${order.id}">${statuses.map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
+        </tr>`;
     }).join('');
 }
 
@@ -351,10 +357,10 @@ async function handleRegisterParty(e) {
 async function exportOrdersToCSV() {
     const { data, error } = await supabase.from('orders').select('*');
     if (error || !data) { alert("Could not fetch orders to export."); return; }
-    let csvContent = "data:text/csv;charset=utf-8,OrderID,Date,PartyName,GST,Address,Items,Total,Status\n";
+    let csvContent = "data:text/csv;charset=utf-8,OrderID,Date,PartyName,GST,Address,Items,Total,Status,Note\n";
     data.forEach(order => {
-        const itemsStr = order.order_items.map(i => `${i.quantity}x ${i.sareeName} (${i.color})`).join('; ');
-        const row = [order.id, new Date(order.created_at).toLocaleString(), `"${order.party_details.party_name}"`, order.party_details.gst_number, `"${order.party_details.address.replace(/\n/g, ' ')}"`, `"${itemsStr}"`, order.grand_total, order.status].join(',');
+        const itemsStr = order.order_items.map(i => `Type:${i.type}, Design:${i.design}, Colors:${i.colors.join(';')}, Qty:${i.quantity}`).join(' | ');
+        const row = [order.id, new Date(order.created_at).toLocaleString(), `"${order.party_details.party_name}"`, order.party_details.gst_number, `"${order.party_details.address.replace(/\n/g, ' ')}"`, `"${itemsStr}"`, order.grand_total, order.status, `"${order.note || ''}"`].join(',');
         csvContent += row + "\r\n";
     });
     const link = document.createElement("a");
@@ -408,12 +414,23 @@ async function placeOrder(user) {
     if (userOrderItems.length === 0) return alert("Your cart is empty.");
     const { data: partyData } = await supabase.from('parties').select('*').eq('id', user.id).single();
     if (!partyData) { alert("Could not verify your party details."); return; }
-    const itemsWithDetails = userOrderItems.map(item => {
-        const saree = state.sarees.find(s => s.id === item.id);
-        return { ...item, sareeName: saree.name, unitPrice: saree.price, totalPrice: item.quantity * saree.price }
+    
+    const grandTotal = userOrderItems.reduce((total, item) => {
+        const saree = state.sarees.find(s => s.id === item.sareeId);
+        return total + (saree.price * item.quantity);
+    }, 0);
+
+    // Create a single note from all items in the cart
+    const note = userOrderItems.map(item => item.note).filter(Boolean).join('; ');
+
+    const { error } = await supabase.from('orders').insert({ 
+        party_id: user.id, 
+        party_details: partyData, 
+        order_items: userOrderItems,
+        grand_total: grandTotal,
+        note: note
     });
-    const grandTotal = itemsWithDetails.reduce((total, item) => total + item.totalPrice, 0);
-    const { error } = await supabase.from('orders').insert({ party_id: user.id, party_details: partyData, order_items: itemsWithDetails, grand_total: grandTotal });
+
     if (error) { alert(`Error placing order: ${error.message}`); } 
     else {
         delete state.orders[user.id];
@@ -429,14 +446,14 @@ function renderOrderTable(user) {
     if (userOrder.length === 0) { container.innerHTML = `<p class="empty-cart-message">Your current order is empty. Add items from the collection to get started.</p>`; return; }
     let total = 0;
     orderItemsBody.innerHTML = userOrder.map((item, index) => {
-        const saree = state.sarees.find(s => s.id === item.id);
+        const saree = state.sarees.find(s => s.id === item.sareeId);
         if (!saree) return '';
         const itemTotal = Number(saree.price) * item.quantity;
         total += itemTotal;
-        return `<tr><td>${saree.name}</td><td>${item.color}</td><td><input type="number" value="${item.quantity}" min="1" class="quantity-input" data-index="${index}"></td><td>₹${Number(saree.price).toLocaleString('en-IN')}</td><td>₹${itemTotal.toLocaleString('en-IN')}</td><td><button class="remove-item-btn" data-index="${index}">✖</button></td></tr>`;
+        const details = item.type === 'Mix' ? 'All Designs, All Colors' : `Design #${item.design}, Colors: ${item.colors.join(', ')}`;
+        return `<tr><td>${saree.name}<br><small>${details}</small></td><td>${item.quantity}</td><td>₹${Number(saree.price).toLocaleString('en-IN')}</td><td>₹${itemTotal.toLocaleString('en-IN')}</td><td><button class="remove-item-btn" data-index="${index}">✖</button></td></tr>`;
     }).join('');
     orderTotalSection.innerHTML = `<p>Grand Total: ₹${total.toLocaleString('en-IN')}</p><button class="btn" id="place-order-btn">Place Order</button>`;
-    document.querySelectorAll('.quantity-input').forEach(input => input.addEventListener('change', e => updateOrderItemQuantity(user, e.target.dataset.index, parseInt(e.target.value))));
     document.querySelectorAll('.remove-item-btn').forEach(btn => btn.addEventListener('click', e => removeOrderItem(user, e.target.dataset.index)));
     document.getElementById('place-order-btn').addEventListener('click', () => placeOrder(user));
 }
@@ -449,15 +466,11 @@ async function renderPastOrders(user) {
         ${data.map(order => `<tr><td>#${order.id}</td><td>${new Date(order.created_at).toLocaleDateString()}</td><td>${order.order_items.length} items</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td></tr>`).join('')}
     </tbody></table>`;
 }
-function updateOrderItemQuantity(user, index, quantity) { if (quantity > 0) { state.orders[user.id][index].quantity = quantity; localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); } }
 function removeOrderItem(user, index) { state.orders[user.id].splice(index, 1); localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); }
-function addToOrder(user, sareeId, color, quantity) {
-    if (!user) return;
+function addToOrder(user, orderItem) {
     const userId = user.id;
     if (!state.orders[userId]) state.orders[userId] = [];
-    const existingItemIndex = state.orders[userId].findIndex(item => item.id === sareeId && item.color === color);
-    if (existingItemIndex > -1) { state.orders[userId][existingItemIndex].quantity += quantity; } 
-    else { state.orders[userId].push({ id: sareeId, color, quantity }); }
+    state.orders[userId].push(orderItem);
     localStorage.setItem('userOrders', JSON.stringify(state.orders));
 }
 // Product Page Logic
@@ -468,77 +481,121 @@ function initProductPage(user) {
     if (!saree) { document.getElementById('product-detail-container').innerHTML = `<p>Saree not found.</p>`; return; }
     const container = document.getElementById('product-detail-container');
     
-    const colorRowsHTML = saree.colors.map(color => `
-        <div class="color-order-row">
-            <div class="color-info">
-                <div class="color-swatch-display" style="background-color: ${color.toLowerCase().replace(/[\s()]/g, '')}"></div>
-                <span>${color}</span>
-            </div>
-            <div class="quantity-selector">
-                <button class="quantity-btn minus" data-color="${color}">−</button>
-                <input type="number" class="color-quantity-input" data-color="${color}" value="0" min="0" readonly>
-                <button class="quantity-btn plus" data-color="${color}">+</button>
-            </div>
-        </div>
-    `).join('');
-
     container.innerHTML = `
         <div class="product-detail-grid">
             <div class="product-image-gallery">
-                <div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}" id="main-saree-image"></div>
-                <div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Thumbnail ${index + 1}" class="${index === 0 ? 'active' : ''}">`).join('')}</div>
+                <div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}"></div>
+                <div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Design ${index + 1}" data-design-id="${index + 1}">`).join('')}</div>
             </div>
             <div class="product-details-content">
                 <h1>${saree.name}</h1>
                 <p class="price">₹${Number(saree.price).toLocaleString('en-IN')}</p>
                 <p class="description">${saree.description || ''}</p>
-                <div id="multi-order-form">
-                    <label class="multi-order-form-title">Select Quantities by Color</label>
-                    ${colorRowsHTML}
+                
+                <div class="order-options">
+                    <label><input type="radio" id="order-mix" name="orderType" checked> Mix Order</label>
+                    <label><input type="radio" id="order-individual" name="orderType"> Individual Design</label>
                 </div>
-                <button class="btn" id="add-all-to-order-btn"><i class="fas fa-shopping-bag"></i> Add All to Order</button>
+
+                <div class="options-container">
+                    <div class="color-options" style="display: none;">
+                        <label>Select Colors:</label>
+                        <div class="color-swatches">${saree.colors.map(color => `<span data-color="${color}">${color}</span>`).join('')}</div>
+                    </div>
+                </div>
+
+                <div class="quantity-input">
+                    <label>Quantity: <input type="number" id="order-qty" min="1" value="1"></label>
+                </div>
+
+                <div class="customer-note">
+                    <label for="order-note">Special Note / Instructions</label>
+                    <textarea id="order-note" rows="3" placeholder="Write any special instructions..."></textarea>
+                </div>
+
+                <button id="submit-order" class="btn">Add to Order</button>
             </div>
         </div>`;
 
-    document.querySelectorAll('.thumbnails img').forEach(thumb => {
-        thumb.addEventListener('click', () => {
-            document.getElementById('main-saree-image').src = thumb.src;
-            document.querySelectorAll('.thumbnails img').forEach(t => t.classList.remove('active'));
-            thumb.classList.add('active');
-        });
-    });
+    const mixRadio = document.getElementById('order-mix');
+    const indivRadio = document.getElementById('order-individual');
+    const thumbnailsContainer = document.querySelector('.thumbnails');
+    const colorOptions = document.querySelector('.color-options');
+    let orderState = { type: 'Mix', design: 'all', colors: [], quantity: 1, note: '' };
 
-    document.querySelectorAll('.quantity-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const color = e.target.dataset.color;
-            const input = document.querySelector(`.color-quantity-input[data-color="${color}"]`);
-            let currentValue = parseInt(input.value);
-            if (e.target.classList.contains('plus')) {
-                input.value = currentValue + 1;
-            } else if (e.target.classList.contains('minus') && currentValue > 0) {
-                input.value = currentValue - 1;
-            }
-        });
-    });
-
-    document.getElementById('add-all-to-order-btn').addEventListener('click', () => {
-        const inputs = document.querySelectorAll('.color-quantity-input');
-        let itemsAdded = [];
-        inputs.forEach(input => {
-            const quantity = parseInt(input.value);
-            if (quantity > 0) {
-                const color = input.dataset.color;
-                addToOrder(user, saree.id, color, quantity);
-                itemsAdded.push(`${quantity} x ${color}`);
-            }
-            input.value = 0;
-        });
-
-        if (itemsAdded.length > 0) {
-            alert(`Added to your order:\n${itemsAdded.join('\n')}`);
-        } else {
-            alert('Please select a quantity for at least one color.');
+    mixRadio.addEventListener('change', () => {
+        if (mixRadio.checked) {
+            thumbnailsContainer.style.display = 'grid';
+            thumbnailsContainer.querySelectorAll('img').forEach(img => img.classList.remove('selected'));
+            colorOptions.style.display = 'none';
+            orderState.type = 'Mix';
+            orderState.design = 'all';
         }
+    });
+
+    indivRadio.addEventListener('change', () => {
+        if (indivRadio.checked) {
+            colorOptions.style.display = 'block';
+            orderState.type = 'Individual';
+            orderState.design = null;
+        }
+    });
+
+    thumbnailsContainer.querySelectorAll('img').forEach(img => {
+        img.addEventListener('click', () => {
+            document.querySelector('.main-image img').src = img.src;
+            if (indivRadio.checked) {
+                thumbnailsContainer.querySelectorAll('img').forEach(i => i.classList.remove('selected'));
+                img.classList.add('selected');
+                orderState.design = img.dataset.designId;
+            }
+        });
+    });
+
+    colorOptions.querySelectorAll('span').forEach(span => {
+        span.addEventListener('click', () => {
+            span.classList.toggle('active');
+        });
+    });
+
+    document.getElementById('submit-order').addEventListener('click', () => {
+        orderState.quantity = parseInt(document.getElementById('order-qty').value) || 1;
+        orderState.note = document.getElementById('order-note').value;
+        orderState.sareeId = saree.id;
+
+        if (orderState.type === 'Individual') {
+            if (!orderState.design) {
+                alert('Please select a design thumbnail.');
+                return;
+            }
+            orderState.colors = Array.from(colorOptions.querySelectorAll('span.active')).map(s => s.dataset.color);
+            if (orderState.colors.length === 0) {
+                alert('Please select at least one color for the individual design.');
+                return;
+            }
+        } else {
+             orderState.colors = saree.colors;
+        }
+        
+        addToOrder(user, orderState);
+        alert(`Added ${saree.name} to your order!`);
+        document.getElementById('order-qty').value = 1;
+        document.getElementById('order-note').value = '';
+        colorOptions.querySelectorAll('span.active').forEach(s => s.classList.remove('active'));
+        thumbnailsContainer.querySelectorAll('img.selected').forEach(i => i.classList.remove('selected'));
+
+    });
+
+    // Lightbox
+    document.querySelectorAll('.product-image-gallery img').forEach(img => {
+        img.addEventListener('click', () => {
+            const lb = document.querySelector('.image-lightbox');
+            lb.querySelector('img').src = img.src;
+            lb.classList.add('active');
+        });
+    });
+    document.querySelector('.image-lightbox')?.addEventListener('click', e => {
+        e.currentTarget.classList.remove('active');
     });
 
     const relatedGrid = document.getElementById('related-products-grid');
