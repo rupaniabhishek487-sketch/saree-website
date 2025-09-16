@@ -14,7 +14,8 @@ let state = {
 // --- Main Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
     const page = window.location.pathname.split("/").pop() || 'index.html';
-    setupUniversalListeners();
+    
+    // Initialize functionalities based on the current page
     switch (page) {
         case 'index.html': initLoginPage(); break;
         case 'admin.html': initAdminLoginPage(); break;
@@ -23,66 +24,63 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'orders.html': securePage(initOrdersPage); break;
         case 'admin-dashboard.html': initAdminDashboard(); break;
     }
-    setupMobileNav(); // Initialize mobile nav on all pages
+    
+    // Setup universal features like nav and scroll button on all pages
+    setupUniversalListeners();
 });
 
 // --- Security & Page Guards ---
 async function securePage(pageFunction) {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; } 
-    else { await loadSareesFromDB(); pageFunction(session.user); }
+    if (!session) { 
+        window.location.href = 'index.html'; 
+    } else { 
+        await loadSareesFromDB(); 
+        pageFunction(session.user); 
+    }
 }
 
 // --- Universal Listeners ---
 function setupUniversalListeners() {
-    document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    // Mobile Navigation Logic
+    const mobileToggle = document.querySelector('.mobile-nav-toggle');
+    const mainNav = document.querySelector('#main-nav');
+    const navOverlay = document.querySelector('.nav-overlay');
+
+    if (mobileToggle && mainNav && navOverlay) {
+        function openNav() {
+            mainNav.setAttribute('data-visible', 'true');
+            mobileToggle.setAttribute('aria-expanded', 'true');
+            document.body.classList.add('nav-open');
+        }
+        function closeNav() {
+            mainNav.setAttribute('data-visible', 'false');
+            mobileToggle.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('nav-open');
+        }
+        mobileToggle.addEventListener('click', () => {
+            const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
+            if (isOpen) closeNav(); else openNav();
+        });
+        navOverlay.addEventListener('click', closeNav);
+        document.querySelectorAll('#main-nav a').forEach(a => a.addEventListener('click', () => {
+            if (window.innerWidth < 769) closeNav();
+        }));
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.body.classList.contains('nav-open')) closeNav();
+        });
+    }
+
+    // Logout Button (might be in main nav or mobile nav)
+    document.querySelectorAll('#logout-btn').forEach(btn => btn.addEventListener('click', handleLogout));
+
+    // Scroll to Top Button
     const scrollToTopBtn = document.getElementById('scrollToTopBtn');
     if (scrollToTopBtn) {
         window.onscroll = () => { scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "block" : "none"; };
         scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 }
-
-// --- MENU TOGGLE — robust accessible behavior ---
-function setupMobileNav() {
-    const mobileToggle = document.querySelector('.mobile-nav-toggle');
-    const mainNav = document.querySelector('.main-nav');
-    const navOverlay = document.querySelector('.nav-overlay');
-
-    if (!mobileToggle || !mainNav || !navOverlay) return;
-
-    function openNav() {
-        mainNav.setAttribute('data-visible', 'true');
-        mobileToggle.setAttribute('aria-expanded', 'true');
-        document.body.classList.add('nav-open');
-    }
-    function closeNav() {
-        mainNav.setAttribute('data-visible', 'false');
-        mobileToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('nav-open');
-    }
-    
-    mobileToggle.addEventListener('click', () => {
-        const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
-        if (isOpen) closeNav();
-        else openNav();
-    });
-    
-    navOverlay.addEventListener('click', () => closeNav());
-
-    document.querySelectorAll('.main-nav .nav-links a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            if (window.innerWidth < 769) closeNav();
-        });
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && document.body.classList.contains('nav-open')) {
-            closeNav();
-        }
-    });
-}
-
 
 // --- Auth Functions ---
 async function handleLogout(e) { 
