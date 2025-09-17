@@ -420,8 +420,7 @@ async function placeOrder(user) {
         return total + (saree.price * item.quantity);
     }, 0);
 
-    // Create a single note from all items in the cart
-    const note = userOrderItems.map(item => item.note).filter(Boolean).join('; ');
+    const note = userOrderItems[0]?.note || ''; // Take note from first item if it exists
 
     const { error } = await supabase.from('orders').insert({ 
         party_id: user.id, 
@@ -484,8 +483,8 @@ function initProductPage(user) {
     container.innerHTML = `
         <div class="product-detail-grid">
             <div class="product-image-gallery">
-                <div class="main-image"><img src="${saree.images[0]}" alt="${saree.name}"></div>
-                <div class="thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Design ${index + 1}" data-design-id="${index + 1}">`).join('')}</div>
+                <img id="main-product-image" src="${saree.images[0]}" alt="${saree.name}">
+                <div class="design-thumbnails">${saree.images.map((img, index) => `<img src="${img}" alt="Design ${index + 1}" data-design-id="${index + 1}">`).join('')}</div>
             </div>
             <div class="product-details-content">
                 <h1>${saree.name}</h1>
@@ -517,85 +516,97 @@ function initProductPage(user) {
             </div>
         </div>`;
 
-    const mixRadio = document.getElementById('order-mix');
-    const indivRadio = document.getElementById('order-individual');
-    const thumbnailsContainer = document.querySelector('.thumbnails');
-    const colorOptions = document.querySelector('.color-options');
-    let orderState = { type: 'Mix', design: 'all', colors: [], quantity: 1, note: '' };
+    const mainImage = document.getElementById('main-product-image');
+    const thumbImgs = document.querySelectorAll('.design-thumbnails img');
+    let selectedDesign = 'all'; 
 
-    mixRadio.addEventListener('change', () => {
-        if (mixRadio.checked) {
-            thumbnailsContainer.style.display = 'grid';
-            thumbnailsContainer.querySelectorAll('img').forEach(img => img.classList.remove('selected'));
-            colorOptions.style.display = 'none';
-            orderState.type = 'Mix';
-            orderState.design = 'all';
-        }
-    });
-
-    indivRadio.addEventListener('change', () => {
+    thumbImgs.forEach(img => {
+      img.addEventListener('click', () => {
         if (indivRadio.checked) {
-            colorOptions.style.display = 'block';
-            orderState.type = 'Individual';
-            orderState.design = null;
+            thumbImgs.forEach(i => i.classList.remove('selected'));
+            img.classList.add('selected');
+            mainImage.src = img.src;
+            selectedDesign = img.dataset.designId;
         }
+      });
     });
 
-    thumbnailsContainer.querySelectorAll('img').forEach(img => {
-        img.addEventListener('click', () => {
-            document.querySelector('.main-image img').src = img.src;
-            if (indivRadio.checked) {
-                thumbnailsContainer.querySelectorAll('img').forEach(i => i.classList.remove('selected'));
-                img.classList.add('selected');
-                orderState.design = img.dataset.designId;
-            }
-        });
-    });
-
-    colorOptions.querySelectorAll('span').forEach(span => {
-        span.addEventListener('click', () => {
-            span.classList.toggle('active');
-        });
-    });
-
-    document.getElementById('submit-order').addEventListener('click', () => {
-        orderState.quantity = parseInt(document.getElementById('order-qty').value) || 1;
-        orderState.note = document.getElementById('order-note').value;
-        orderState.sareeId = saree.id;
-
-        if (orderState.type === 'Individual') {
-            if (!orderState.design) {
-                alert('Please select a design thumbnail.');
-                return;
-            }
-            orderState.colors = Array.from(colorOptions.querySelectorAll('span.active')).map(s => s.dataset.color);
-            if (orderState.colors.length === 0) {
-                alert('Please select at least one color for the individual design.');
-                return;
-            }
-        } else {
-             orderState.colors = saree.colors;
-        }
-        
-        addToOrder(user, orderState);
-        alert(`Added ${saree.name} to your order!`);
-        document.getElementById('order-qty').value = 1;
-        document.getElementById('order-note').value = '';
-        colorOptions.querySelectorAll('span.active').forEach(s => s.classList.remove('active'));
-        thumbnailsContainer.querySelectorAll('img.selected').forEach(i => i.classList.remove('selected'));
-
-    });
-
-    // Lightbox
-    document.querySelectorAll('.product-image-gallery img').forEach(img => {
-        img.addEventListener('click', () => {
-            const lb = document.querySelector('.image-lightbox');
-            lb.querySelector('img').src = img.src;
-            lb.classList.add('active');
-        });
+    mainImage?.addEventListener('click', () => {
+      const lightbox = document.querySelector('.image-lightbox');
+      if (lightbox) {
+        lightbox.querySelector('img').src = mainImage.src;
+        lightbox.classList.add('active');
+      }
     });
     document.querySelector('.image-lightbox')?.addEventListener('click', e => {
-        e.currentTarget.classList.remove('active');
+      e.currentTarget.classList.remove('active');
+    });
+
+    const mixRadio = document.getElementById('order-mix');
+    const indivRadio = document.getElementById('order-individual');
+    const colorOptions = document.querySelector('.color-options');
+
+    mixRadio?.addEventListener('change', () => {
+      if (mixRadio.checked) {
+        selectedDesign = 'all';
+        colorOptions.style.display = 'none';
+        thumbImgs.forEach(img => img.classList.remove('selected'));
+      }
+    });
+    indivRadio?.addEventListener('change', () => {
+      if (indivRadio.checked) {
+        colorOptions.style.display = 'block';
+        selectedDesign = null;
+      }
+    });
+
+    let selectedColors = [];
+    document.querySelectorAll('.color-options span').forEach(span => {
+      span.addEventListener('click', () => {
+        span.classList.toggle('active');
+        const color = span.dataset.color;
+        if (span.classList.contains('active')) {
+          selectedColors.push(color);
+        } else {
+          selectedColors = selectedColors.filter(c => c !== color);
+        }
+      });
+    });
+
+    document.getElementById('submit-order')?.addEventListener('click', () => {
+      const option = mixRadio.checked ? "Mix" : "Individual";
+      const qty = document.getElementById('order-qty').value;
+      const note = document.getElementById('order-note').value;
+      
+      if(option === "Individual" && !selectedDesign) {
+          alert("Please select a design for Individual Order.");
+          return;
+      }
+      if(option === "Individual" && selectedColors.length === 0) {
+          alert("Please select at least one color for Individual Order.");
+          return;
+      }
+
+      const order = {
+        sareeId: saree.id,
+        type: option,
+        design: selectedDesign,
+        colors: option === "Mix" ? saree.colors : selectedColors,
+        quantity: parseInt(qty),
+        note: note
+      };
+
+      addToOrder(user, order);
+      alert(`Added ${saree.name} to your order!`);
+       document.getElementById('order-qty').value = 1;
+       document.getElementById('order-note').value = '';
+       document.querySelectorAll('.color-options span.active').forEach(s => s.classList.remove('active'));
+       thumbImgs.forEach(i => i.classList.remove('selected'));
+       mixRadio.checked = true;
+       colorOptions.style.display = 'none';
+       selectedColors = [];
+       selectedDesign = 'all';
+
     });
 
     const relatedGrid = document.getElementById('related-products-grid');
