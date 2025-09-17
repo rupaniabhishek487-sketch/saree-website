@@ -1,7 +1,7 @@
 /* --- Global Styles & Variables --- */
 :root {
     --primary-color: #333;
-    --secondary-color: #7a7aa;
+    --secondary-color: #7a7a7a;
     --accent-color: #c5a47e; /* Gold accent */
     --background-color: #fdfdfd;
     --card-background: #ffffff;
@@ -73,16 +73,23 @@ body {
   font-size: 22px;
   z-index: 1210;
 }
+#logout-btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: #333;
+  font-weight:600;
+}
 main { padding-top: 70px; }
 .nav-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index:1190; opacity:0; transition: opacity .28s ease; }
 body.nav-open .nav-overlay { display:block; opacity:1; }
 body.nav-open { overflow: hidden; }
 .main-nav { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 420px; background: #fff; transform: translateX(110%); transition: transform .35s ease; z-index:1215; padding: 5vh 18px; overflow-y:auto; }
 .main-nav[data-visible="true"] { transform: translateX(0); }
-.main-nav .nav-links { display:flex; flex-direction:column; gap:18px; margin-top:18px; align-items:center; list-style: none; padding: 0; }
+.main-nav .nav-links { display:flex; flex-direction:column; gap:18px; margin-top:18px; align-items:center; list-style: none; padding: 0;}
 .main-nav .nav-links a { font-size:1.25rem; padding:10px 14px; text-decoration:none; color:#111; }
-#logout-btn { display: inline-block; padding: 8px 12px; border-radius: 8px; background: transparent; color: #333; font-weight:600; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+.banner { padding-top: 36px; padding-bottom: 40px; }
 @media (min-width: 769px) {
   .logo .desktop-logo { display: inline-block; }
   .logo .mobile-logo { display: none; }
@@ -101,9 +108,8 @@ body.nav-open { overflow: hidden; }
     align-items: center;
   }
   .main-nav .nav-links { flex-direction: row; gap: 2rem; }
-  #logout-btn { display: inline-block; /* Or your preferred desktop style */ }
+  .nav-overlay { display: none !important; pointer-events: none !important; }
 }
-.banner { padding-top: 36px; padding-bottom: 40px; }
 @media (max-width: 420px) {
   main { padding-top: 64px; }
   .banner h1 { font-size: 2.2rem; line-height: 1.05; }
@@ -126,7 +132,7 @@ body.nav-open { overflow: hidden; }
 /* --- Product Detail Page --- */
 .product-detail-section { padding: 60px 0; }
 .product-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: start; }
-.product-image-gallery { text-align: center; }
+.product-image-gallery { text-align: center; margin-bottom: 16px; }
 #main-product-image { max-width: 100%; max-height: 420px; object-fit: contain; cursor: zoom-in; margin-bottom: 12px; background: #f9f9f9; border-radius: var(--border-radius); }
 .design-thumbnails { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .design-thumbnails img { width: 80px; height: 80px; object-fit: contain; border: 2px solid transparent; border-radius: 8px; cursor: pointer; background: #f9f9f9; }
