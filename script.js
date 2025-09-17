@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'home.html': securePage(initHomePage); break;
         case 'product.html': securePage(initProductPage); break;
         case 'orders.html': securePage(initOrdersPage); break;
-        case 'admin-dashboard.html': initAdminDashboard(); break;
+        case 'admin-dashboard.html': securePage(initAdminDashboard); break;
     }
     
     setupUniversalListeners();
@@ -29,10 +29,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Security & Page Guards ---
 async function securePage(pageFunction) {
+    // Admin dashboard has its own password check, not Supabase auth
+    if (window.location.pathname.includes('admin-dashboard.html')) {
+        if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') {
+            window.location.href = 'admin.html';
+        } else {
+            initAdminDashboard();
+        }
+        return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; } 
-    else { await loadSareesFromDB(); pageFunction(session.user); }
+    if (!session) { 
+        window.location.href = 'index.html'; 
+    } else { 
+        await loadSareesFromDB(); 
+        pageFunction(session.user); 
+    }
 }
+
 
 // --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
@@ -62,7 +77,8 @@ async function handleLogout(e) {
     sessionStorage.removeItem('isAdminAuthenticated'); 
     localStorage.removeItem('userOrders'); 
     const { error } = await supabase.auth.signOut();
-    if (!error) { window.location.href = 'index.html'; }
+    // Always redirect to login, even if there was a minor signout error
+    window.location.href = 'index.html';
 }
 
 function initLoginPage() { 
@@ -71,12 +87,11 @@ function initLoginPage() {
         const rememberedUser = localStorage.getItem('rememberedUser');
         if (rememberedUser) {
             try {
-                const { email, pass } = JSON.parse(rememberedUser);
-                document.getElementById('username').value = atob(email); // Decode email
-                document.getElementById('password').value = atob(pass); // Decode password
+                const { email, pass } = JSON.parse(atob(rememberedUser)); // Decode object
+                document.getElementById('username').value = email;
+                document.getElementById('password').value = pass;
                 document.getElementById('remember-me').checked = true;
             } catch (e) {
-                console.error("Failed to parse remembered user:", e);
                 localStorage.removeItem('rememberedUser');
             }
         }
@@ -92,11 +107,8 @@ async function handleLogin(e) {
     errorEl.textContent = 'Logging in...';
 
     if (rememberMe) {
-        const userCredentials = {
-            email: btoa(email), // Encode email
-            pass: btoa(password)  // Encode password for basic security
-        };
-        localStorage.setItem('rememberedUser', JSON.stringify(userCredentials));
+        const userCredentials = { email: email, pass: password };
+        localStorage.setItem('rememberedUser', btoa(JSON.stringify(userCredentials))); // Encode object
     } else {
         localStorage.removeItem('rememberedUser');
     }
@@ -106,21 +118,41 @@ async function handleLogin(e) {
     else { window.location.href = 'home.html'; }
 }
 
+function getAdminPass() {
+    const savedPass = localStorage.getItem('adminPassword');
+    return savedPass ? atob(savedPass) : "SareeAdmin2025";
+}
+
 function initAdminLoginPage() { 
     const adminForm = document.getElementById('admin-login-form');
     if (adminForm) {
+        const rememberAdmin = localStorage.getItem('rememberAdmin');
+        if(rememberAdmin) {
+            document.getElementById('admin-password').value = getAdminPass();
+            document.getElementById('admin-remember-me').checked = true;
+        }
         adminForm.addEventListener('submit', handleAdminLogin);
     }
 }
+
 function handleAdminLogin(e) {
     e.preventDefault();
-    const ADMIN_PASS = "SareeAdmin2025";
+    const ADMIN_PASS = getAdminPass();
     const password = document.getElementById('admin-password').value;
+    const rememberMe = document.getElementById('admin-remember-me').checked;
     const errorEl = document.getElementById('admin-login-error');
+
     if (password === ADMIN_PASS) {
+        if(rememberMe) {
+            localStorage.setItem('rememberAdmin', 'true');
+        } else {
+            localStorage.removeItem('rememberAdmin');
+        }
         sessionStorage.setItem('isAdminAuthenticated', 'true');
         window.location.href = 'admin-dashboard.html';
-    } else { errorEl.textContent = "Incorrect password."; }
+    } else { 
+        errorEl.textContent = "Incorrect password."; 
+    }
 }
 
 // --- Data Fetching ---
@@ -132,7 +164,6 @@ async function loadSareesFromDB() {
 
 // --- Admin Dashboard Logic ---
 async function initAdminDashboard() {
-    if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
     const navLinks = document.querySelectorAll('.admin-nav-link');
     const sections = document.querySelectorAll('.admin-section');
     navLinks.forEach(link => {
@@ -148,6 +179,7 @@ async function initAdminDashboard() {
     document.getElementById('add-saree-form').addEventListener('submit', handleAddSaree);
     document.getElementById('edit-saree-form').addEventListener('submit', handleUpdateSaree);
     document.getElementById('register-party-form').addEventListener('submit', handleRegisterParty);
+    document.getElementById('change-password-form').addEventListener('submit', handleChangeAdminPassword);
     document.getElementById('export-csv-btn')?.addEventListener('click', exportOrdersToCSV);
     document.getElementById('add-image-link-btn').addEventListener('click', () => addDynamicInput('image-links-container', 'url', 'https://example.com/image.jpg'));
     document.getElementById('add-color-btn').addEventListener('click', () => addDynamicInput('colors-container', 'text', 'e.g., Maroon'));
@@ -159,6 +191,38 @@ async function initAdminDashboard() {
     renderRegisteredPartiesTable();
     renderAdminOrdersTable();
 }
+
+function handleChangeAdminPassword(e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('change-password-status');
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+    const ADMIN_PASS = getAdminPass();
+
+    if (currentPassword !== ADMIN_PASS) {
+        statusEl.textContent = "Current password is incorrect.";
+        statusEl.className = 'form-status-message error';
+        return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+        statusEl.textContent = "New password must be at least 6 characters long.";
+        statusEl.className = 'form-status-message error';
+        return;
+    }
+    if (newPassword !== confirmNewPassword) {
+        statusEl.textContent = "New passwords do not match.";
+        statusEl.className = 'form-status-message error';
+        return;
+    }
+
+    localStorage.setItem('adminPassword', btoa(newPassword));
+    statusEl.textContent = "Password updated successfully!";
+    statusEl.className = 'form-status-message success';
+    e.target.reset();
+}
+
 
 function addDynamicInput(containerId, inputType, placeholder) {
     const container = document.getElementById(containerId);
@@ -650,4 +714,3 @@ async function cancelOrder(orderId, user) {
         renderPastOrders(user);
     }
 }
-
