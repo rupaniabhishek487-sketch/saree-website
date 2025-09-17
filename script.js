@@ -255,7 +255,7 @@ async function renderAdminOrdersTable() {
     if (error) { tableBody.innerHTML = `<tr><td colspan="6">Failed to load orders.</td></tr>`; return; }
     document.getElementById('total-orders-stat').textContent = data.length;
     if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="6">No orders placed.</td></tr>`; return; }
-    const statuses = ['Pending', 'Processing', 'Shipped', 'Completed'];
+    const statuses = ['Pending', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
     tableBody.innerHTML = data.map(order => {
         const orderDetails = order.order_items.map(item => `
             <div><strong>Type:</strong> ${item.type}</div>
@@ -271,6 +271,7 @@ async function renderAdminOrdersTable() {
             <td>₹${order.grand_total.toLocaleString('en-IN')}</td>
             <td>${new Date(order.created_at).toLocaleString()}</td>
             <td><select class="order-status-select" data-order-id="${order.id}">${statuses.map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
+            <td><button class="action-btn delete" data-order-id="${order.id}">Delete</button></td>
         </tr>`;
     }).join('');
 }
@@ -402,39 +403,35 @@ async function initOrdersPage(user) {
     const { data } = await supabase.from('parties').select('*').eq('id', user.id).single();
     if (data) { document.getElementById('party-details-review').innerHTML = `<h3>Your details for this order:</h3><p><strong>Name:</strong> ${data.party_name}</p><p><strong>Address:</strong> ${data.address}</p><p><strong>GST No:</strong> ${data.gst_number}</p>`; }
     const modal = document.getElementById('confirmation-modal');
-    const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn');
-    const closeAndRedirect = () => { modal.style.display = "none"; window.location.href = 'home.html'; };
+    const closeButtons = document.querySelectorAll('.close-button, #modal-close-btn-user');
+    const closeAndRedirect = () => { modal.style.display = "none"; window.location.href = 'orders.html'; };
     closeButtons.forEach(btn => btn.onclick = closeAndRedirect);
     window.onclick = event => { if (event.target == modal) closeAndRedirect(); };
     renderOrderTable(user);
     renderPastOrders(user);
+    document.getElementById('past-orders-container').addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-cancel')) {
+            const orderId = e.target.dataset.orderId;
+            showUserConfirmationModal(`Are you sure you want to cancel Order #${orderId}?`, () => cancelOrder(orderId, user));
+        }
+    });
 }
 async function placeOrder(user) {
     const userOrderItems = state.orders[user.id] || [];
     if (userOrderItems.length === 0) return alert("Your cart is empty.");
     const { data: partyData } = await supabase.from('parties').select('*').eq('id', user.id).single();
     if (!partyData) { alert("Could not verify your party details."); return; }
-    
     const grandTotal = userOrderItems.reduce((total, item) => {
         const saree = state.sarees.find(s => s.id === item.sareeId);
         return total + (saree.price * item.quantity);
     }, 0);
-
     const note = userOrderItems[0]?.note || '';
-
-    const { error } = await supabase.from('orders').insert({ 
-        party_id: user.id, 
-        party_details: partyData, 
-        order_items: userOrderItems,
-        grand_total: grandTotal,
-        note: note
-    });
-
+    const { error } = await supabase.from('orders').insert({ party_id: user.id, party_details: partyData, order_items: userOrderItems, grand_total: grandTotal, note: note });
     if (error) { alert(`Error placing order: ${error.message}`); } 
     else {
         delete state.orders[user.id];
         localStorage.setItem('userOrders', JSON.stringify(state.orders));
-        document.getElementById('confirmation-modal').style.display = "block";
+        showUserConfirmationModal("Order Placed Successfully! Thank you. Your order has been submitted for processing.", null, true);
     }
 }
 function renderOrderTable(user) {
@@ -461,8 +458,16 @@ async function renderPastOrders(user) {
     const { data, error } = await supabase.from('orders').select('*').eq('party_id', user.id).order('created_at', { ascending: false });
     if (error) { container.innerHTML = `<p class="empty-cart-message">Could not load past orders.</p>`; return; }
     if (data.length === 0) { container.innerHTML = `<p class="empty-cart-message">You have no past orders.</p>`; return; }
-    container.innerHTML = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>
-        ${data.map(order => `<tr><td>#${order.id}</td><td>${new Date(order.created_at).toLocaleDateString()}</td><td>${order.order_items.length}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td></tr>`).join('')}
+    container.innerHTML = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>
+        ${data.map(order => `
+            <tr>
+                <td>#${order.id}</td>
+                <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                <td>₹${order.grand_total.toLocaleString('en-IN')}</td>
+                <td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td>
+                <td>${order.status === 'Pending' ? `<button class="btn btn-cancel" data-order-id="${order.id}">Cancel</button>` : ''}</td>
+            </tr>
+        `).join('')}
     </tbody></table>`;
 }
 function removeOrderItem(user, index) { state.orders[user.id].splice(index, 1); localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); }
@@ -612,4 +617,49 @@ function initProductPage(user) {
     const relatedGrid = document.getElementById('related-products-grid');
     const relatedSarees = state.sarees.filter(s => s.category === saree.category && s.id !== saree.id).slice(0, 4);
     relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
+}
+
+// User-side order cancellation
+function showUserConfirmationModal(message, onConfirm, isSuccess = false) {
+    const modal = document.getElementById('confirmation-modal');
+    const title = document.getElementById('confirmation-modal-title');
+    const msg = document.getElementById('confirmation-modal-message');
+    const confirmBtn = document.getElementById('modal-confirm-btn-user');
+    const cancelBtn = document.getElementById('modal-cancel-btn-user');
+    const okBtn = document.getElementById('modal-close-btn-user');
+
+    msg.textContent = message;
+    
+    if (isSuccess) {
+        title.textContent = "Success!";
+        confirmBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        okBtn.style.display = 'inline-block';
+    } else {
+        title.textContent = "Confirm Cancellation";
+        confirmBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
+        okBtn.style.display = 'none';
+
+        const confirmHandler = () => {
+            onConfirm();
+            modal.style.display = 'none';
+        };
+        confirmBtn.addEventListener('click', confirmHandler, { once: true });
+        cancelBtn.onclick = () => modal.style.display = 'none';
+    }
+    
+    modal.style.display = 'block';
+}
+
+async function cancelOrder(orderId, user) {
+    const { error } = await supabase.from('orders').update({ status: 'Cancelled' }).eq('id', orderId).eq('party_id', user.id);
+
+    if (error) {
+        alert('Failed to cancel order. It may have already been processed.');
+        console.error('Cancellation Error:', error);
+    } else {
+        alert('Order #' + orderId + ' has been cancelled.');
+        renderPastOrders(user);
+    }
 }
