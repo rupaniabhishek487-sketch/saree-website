@@ -44,17 +44,71 @@ body {
 .action-btn.delete:hover { background-color: var(--danger-color); color: white; }
 
 /* --- Header & New Dropdown Navigation --- */
-.site-header { width: 100%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 1200; position: sticky; top: 0; left: 0; }
-.header-inner { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; position: relative; }
+.site-header {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  z-index: 1200;
+  position: sticky;
+  top: 0;
+  left: 0;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  position: relative; /* Anchor for the dropdown */
+}
 .logo { font-family: var(--font-primary); text-decoration: none; color: var(--primary-color); font-weight: 700; }
 .logo .desktop-logo { display: none; }
 .logo .mobile-logo { display: inline-block; font-size: 1.5rem; }
-.mobile-nav-toggle { display: inline-flex; align-items: center; justify-content: center; width:44px; height:44px; border-radius:8px; border: none; background: transparent; font-size: 22px; z-index: 1210; }
-.main-nav { display: none; position: absolute; top: 100%; right: 0; left: 0; background: #fff; border-top: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.main-nav.nav-open { display: block; }
-.main-nav .nav-links { display: flex; flex-direction: column; text-align: center; gap: 10px; padding: 10px 0; list-style: none; margin: 0; }
-.main-nav .nav-links a { padding: 12px; color: #111; text-decoration: none; font-size: 1.1rem; font-weight: 600; }
-.main-nav .nav-links a:hover { background: #f8f8f8; }
+.mobile-nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width:44px;
+  height:44px;
+  border-radius:8px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  z-index: 1210;
+}
+/* Mobile dropdown menu */
+.main-nav {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1200;
+}
+.main-nav.active {
+  display: block;
+}
+.main-nav .nav-links {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 10px;
+  padding: 10px 0;
+  list-style: none;
+  margin: 0;
+}
+.main-nav .nav-links a {
+  padding: 12px;
+  color: #111;
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.main-nav .nav-links a:hover {
+  background: #f8f8f8;
+}
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
 
 /* --- Login & Admin Login Pages --- */
