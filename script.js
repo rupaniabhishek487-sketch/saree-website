@@ -36,7 +36,6 @@ async function securePage(pageFunction) {
 
 // --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
-    // Simple dropdown toggle
     const mobileToggle = document.querySelector('.mobile-nav-toggle');
     const mainNav = document.getElementById('main-nav');
     if (mobileToggle && mainNav) {
@@ -69,10 +68,17 @@ async function handleLogout(e) {
 function initLoginPage() { 
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
-        const savedEmail = localStorage.getItem('rememberedEmail');
-        if (savedEmail) {
-            document.getElementById('username').value = savedEmail;
-            document.getElementById('remember-me').checked = true;
+        const rememberedUser = localStorage.getItem('rememberedUser');
+        if (rememberedUser) {
+            try {
+                const { email, pass } = JSON.parse(rememberedUser);
+                document.getElementById('username').value = atob(email); // Decode email
+                document.getElementById('password').value = atob(pass); // Decode password
+                document.getElementById('remember-me').checked = true;
+            } catch (e) {
+                console.error("Failed to parse remembered user:", e);
+                localStorage.removeItem('rememberedUser');
+            }
         }
         loginForm.addEventListener('submit', handleLogin);
     }
@@ -86,9 +92,13 @@ async function handleLogin(e) {
     errorEl.textContent = 'Logging in...';
 
     if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
+        const userCredentials = {
+            email: btoa(email), // Encode email
+            pass: btoa(password)  // Encode password for basic security
+        };
+        localStorage.setItem('rememberedUser', JSON.stringify(userCredentials));
     } else {
-        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberedUser');
     }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -640,3 +650,4 @@ async function cancelOrder(orderId, user) {
         renderPastOrders(user);
     }
 }
+
