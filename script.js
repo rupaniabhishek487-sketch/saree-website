@@ -38,13 +38,20 @@ async function securePage(pageFunction) {
 function setupUniversalListeners() {
     const mobileToggle = document.querySelector('.mobile-nav-toggle');
     const mainNav = document.querySelector('#main-nav');
-    const navOverlay = document.querySelector('.nav-overlay');
+    let navOverlay = document.querySelector('.nav-overlay');
 
-    if (mobileToggle && mainNav && navOverlay) {
+    if (mobileToggle && mainNav) {
+        if (!navOverlay) {
+            navOverlay = document.createElement('div');
+            navOverlay.className = 'nav-overlay';
+            navOverlay.setAttribute('aria-hidden', 'true');
+            mainNav.parentNode.insertBefore(navOverlay, mainNav);
+        }
+    
       function openNav() {
-        document.body.classList.add('nav-open');
         if (mainNav) mainNav.style.zIndex = '1215';
         if (navOverlay) navOverlay.style.zIndex = '1190';
+        document.body.classList.add('nav-open');
         mainNav.setAttribute('data-visible','true');
         mobileToggle.setAttribute('aria-expanded','true');
         document.body.style.overflow = 'hidden';
@@ -64,7 +71,7 @@ function setupUniversalListeners() {
         const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
         if (isOpen) closeNav(); else openNav();
       });
-      navOverlay?.addEventListener('click', closeNav);
+      navOverlay.addEventListener('click', closeNav);
       document.querySelectorAll('#main-nav a').forEach(a => a.addEventListener('click', () => {
         if (window.innerWidth < 769) closeNav();
       }));
@@ -421,7 +428,7 @@ async function initOrdersPage(user) {
     document.getElementById('past-orders-container').addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-cancel')) {
             const orderId = e.target.dataset.orderId;
-            showUserConfirmationModal(`Are you sure you want to cancel Order #${orderId}?`, () => cancelOrder(orderId, user));
+            showUserConfirmationModal('Confirm Cancellation', `Are you sure you want to cancel Order #${orderId}?`, false, () => cancelOrder(orderId, user));
         }
     });
 }
@@ -628,7 +635,6 @@ function initProductPage(user) {
     relatedGrid.innerHTML = relatedSarees.map(rs => `<div class="product-card" onclick="window.location.href='product.html?id=${rs.id}'"><div class="product-image-container"><img src="${rs.images[0]}" alt="${rs.name}"></div><div class="product-info"><h3>${rs.name}</h3><p class="product-price">₹${Number(rs.price).toLocaleString('en-IN')}</p></div></div>`).join('');
 }
 
-// User-side order cancellation
 function showUserConfirmationModal(title, message, isSuccess = false, onConfirm = null) {
     const modal = document.getElementById('confirmation-modal');
     const modalTitle = document.getElementById('confirmation-modal-title');
