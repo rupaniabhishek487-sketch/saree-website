@@ -39,7 +39,8 @@ function setupUniversalListeners() {
     // Robust Mobile Navigation Logic
     (function() {
         const mobileToggle = document.querySelector('.mobile-nav-toggle');
-        const mainNav = document.querySelector('#main-nav');
+        const mainNav = document.querySelector('#main-nav') || document.querySelector('.main-nav');
+
         if (mobileToggle && mainNav) {
             mobileToggle.addEventListener('click', () => {
                 mainNav.classList.toggle('active');
