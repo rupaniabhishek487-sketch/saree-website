@@ -43,48 +43,7 @@ body {
 .action-btn.delete { color: var(--danger-color); }
 .action-btn.delete:hover { background-color: var(--danger-color); color: white; }
 
-/* ---------- NAV / OVERLAY STACKING FIX ---------- */
-.nav-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 1190;            /* lower than .main-nav */
-  opacity: 0;
-  transition: opacity 280ms ease;
-  pointer-events: none;     /* disabled when hidden */
-}
-.main-nav {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 420px;
-  background: #fff;
-  transform: translateX(110%) !important;
-  transition: transform 350ms ease !important;
-  box-shadow: -6px 0 24px rgba(0,0,0,0.08);
-  z-index: 1220;            /* HIGHER than overlay */
-  pointer-events: auto;     /* ensure clicks go to the menu */
-  -webkit-overflow-scrolling: touch;
-  will-change: transform;
-}
-.main-nav[data-visible="true"] {
-  transform: translateX(0) !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  display: block !important;
-}
-body.nav-open .nav-overlay {
-  display: block;
-  opacity: 1;
-  pointer-events: auto;
-}
-body.nav-open { overflow: hidden; }
-.main-nav * {
-  pointer-events: auto;
-}
+/* --------- NAV & OVERLAY FIXES ---------- */
 .site-header {
   width: 100%;
   background: #fff;
@@ -121,12 +80,43 @@ body.nav-open { overflow: hidden; }
   background: transparent;
   color: #333;
   font-weight:600;
+  text-decoration: none;
 }
 main { padding-top: 70px; }
+.nav-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index:1190; opacity:0; transition: opacity .28s ease; }
+body.nav-open .nav-overlay { display:block; opacity:1; }
+body.nav-open { overflow: hidden; }
+.main-nav { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 420px; background: #fff; transform: translateX(110%); transition: transform .35s ease; z-index:1215; padding: 5vh 18px; overflow-y:auto; }
+.main-nav[data-visible="true"] { transform: translateX(0); }
 .main-nav .nav-links { display:flex; flex-direction:column; gap:18px; margin-top:18px; align-items:center; list-style: none; padding: 0;}
 .main-nav .nav-links a { font-size:1.25rem; padding:10px 14px; text-decoration:none; color:#111; }
-.banner { padding-top: 36px; padding-bottom: 40px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+.banner { padding-top: 36px; padding-bottom: 40px; }
+@media (min-width: 769px) {
+  .logo .desktop-logo { display: inline-block; }
+  .logo .mobile-logo { display: none; }
+  .mobile-nav-toggle { display: none; }
+  .main-nav {
+    position: static;
+    transform: none;
+    display: flex !important;
+    width: auto;
+    max-width: none;
+    background: transparent;
+    box-shadow: none;
+    flex-direction: row;
+    padding: 0;
+    gap: 0;
+    align-items: center;
+  }
+  .main-nav .nav-links { flex-direction: row; gap: 2rem; }
+  .main-nav .nav-links a { font-size: 1rem; padding: 5px 0; color: var(--secondary-color); font-weight: 500;}
+  .nav-overlay { display: none !important; }
+}
+@media (max-width: 420px) {
+  main { padding-top: 64px; }
+  .banner h1 { font-size: 2.2rem; line-height: 1.05; }
+}
 
 /* --- Login & Admin Login Pages --- */
 .login-body { background-color: #f4f0ec; display: flex; justify-content: center; align-items: center; height: 100vh; }
