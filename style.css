@@ -58,6 +58,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
+  position: relative;
 }
 .logo { font-family: var(--font-primary); text-decoration: none; color: var(--primary-color); }
 .logo .desktop-logo { display: none; font-weight:700; font-size:1.05rem; }
@@ -74,39 +75,39 @@ body {
   font-size: 22px;
   z-index: 1210;
 }
+/* Mobile dropdown menu */
 .main-nav {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border-top: 1px solid var(--border-color);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1200;
 }
 .main-nav.active {
-    display: block;
+  display: block;
 }
 .main-nav .nav-links {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 1rem 0;
-    list-style: none;
-    margin: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 10px;
+  padding: 10px 0;
+  list-style: none;
+  margin: 0;
 }
 .main-nav .nav-links a {
-    padding: 15px 20px;
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 600;
-    width: 100%;
-    text-align: center;
+  padding: 12px;
+  color: #111;
+  text-decoration: none;
+  font-size: 1.1rem;
 }
 .main-nav .nav-links a:hover {
-    background-color: #f9f9f9;
+  background: #f8f8f8;
 }
-main { padding-top: 0; } /* Removed old padding */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
 
 /* --- Login & Admin Login Pages --- */
@@ -251,13 +252,12 @@ footer { background-color: #f4f4f4; text-align: center; padding: 20px 0; margin-
   .logo .mobile-logo { display: none; }
   .mobile-nav-toggle { display: none; }
   .main-nav {
-    display: flex;
+    display: block !important;
     position: static;
-    transform: none;
-    width: auto;
     background: transparent;
     box-shadow: none;
-    padding: 0;
+    width: auto;
+    max-width: none;
   }
   .main-nav .nav-links {
     flex-direction: row;
@@ -265,8 +265,6 @@ footer { background-color: #f4f4f4; text-align: center; padding: 20px 0; margin-
   }
   .main-nav .nav-links a {
     font-size: 1rem;
-    font-weight: 500;
-    color: var(--secondary-color);
   }
 }
 @media (max-width: 900px) {
