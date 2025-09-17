@@ -45,8 +45,6 @@ body.nav-open {
 .action-btn.edit:hover { background-color: #f0f0f0; }
 .action-btn.delete { color: var(--danger-color); }
 .action-btn.delete:hover { background-color: var(--danger-color); color: white; }
-.btn-cancel { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 5px 10px; font-size: 0.8rem; }
-.btn-cancel:hover { background-color: var(--danger-color); color: white; }
 
 /* --- Header & Navigation --- */
 .site-header { width: 100%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 1010; position: sticky; top: 0; left: 0; }
@@ -163,6 +161,7 @@ body.nav-open .nav-overlay { display:block; opacity:1; }
 .status-shipped { background-color: #28a745; }
 .status-completed { background-color: #6c757d; }
 .status-cancelled { background-color: #868e96; }
+
 
 /* --- Universal Elements (Footer, etc.) --- */
 footer { background-color: #f4f4f4; text-align: center; padding: 20px 0; margin-top: 60px; font-size: 0.9rem; color: var(--secondary-color); }
