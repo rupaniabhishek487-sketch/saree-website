@@ -36,7 +36,7 @@ async function securePage(pageFunction) {
 
 // --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
-    // Defensive nav overlay/menu fix
+    // Robust Mobile Navigation Logic from user
     (function() {
       const mobileToggle = document.querySelector('.mobile-nav-toggle');
       let mainNav = document.querySelector('#main-nav') || document.querySelector('.main-nav');
