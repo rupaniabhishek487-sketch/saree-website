@@ -420,7 +420,7 @@ async function placeOrder(user) {
         return total + (saree.price * item.quantity);
     }, 0);
 
-    const note = userOrderItems[0]?.note || ''; // Take note from first item if it exists
+    const note = userOrderItems[0]?.note || '';
 
     const { error } = await supabase.from('orders').insert({ 
         party_id: user.id, 
@@ -462,7 +462,7 @@ async function renderPastOrders(user) {
     if (error) { container.innerHTML = `<p class="empty-cart-message">Could not load past orders.</p>`; return; }
     if (data.length === 0) { container.innerHTML = `<p class="empty-cart-message">You have no past orders.</p>`; return; }
     container.innerHTML = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>
-        ${data.map(order => `<tr><td>#${order.id}</td><td>${new Date(order.created_at).toLocaleDateString()}</td><td>${order.order_items.length} items</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td></tr>`).join('')}
+        ${data.map(order => `<tr><td>#${order.id}</td><td>${new Date(order.created_at).toLocaleDateString()}</td><td>${order.order_items.length}</td><td>₹${order.grand_total.toLocaleString('en-IN')}</td><td><span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span></td></tr>`).join('')}
     </tbody></table>`;
 }
 function removeOrderItem(user, index) { state.orders[user.id].splice(index, 1); localStorage.setItem('userOrders', JSON.stringify(state.orders)); renderOrderTable(user); }
@@ -521,11 +521,12 @@ function initProductPage(user) {
     let selectedDesign = 'all'; 
 
     thumbImgs.forEach(img => {
-      img.addEventListener('click', () => {
+      img.addEventListener('click', (e) => {
+        e.preventDefault();
+        mainImage.src = img.src;
         if (indivRadio.checked) {
             thumbImgs.forEach(i => i.classList.remove('selected'));
             img.classList.add('selected');
-            mainImage.src = img.src;
             selectedDesign = img.dataset.designId;
         }
       });
@@ -606,7 +607,6 @@ function initProductPage(user) {
        colorOptions.style.display = 'none';
        selectedColors = [];
        selectedDesign = 'all';
-
     });
 
     const relatedGrid = document.getElementById('related-products-grid');
