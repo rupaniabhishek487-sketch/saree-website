@@ -67,6 +67,14 @@ body {
   box-shadow: -6px 0 24px rgba(0,0,0,0.08);
   z-index: 1220;            /* HIGHER than overlay */
   pointer-events: auto;     /* ensure clicks go to the menu */
+  -webkit-overflow-scrolling: touch;
+  will-change: transform;
+}
+.main-nav[data-visible="true"] {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
 }
 body.nav-open .nav-overlay {
   display: block;
@@ -263,4 +271,3 @@ footer { background-color: #f4f4f4; text-align: center; padding: 20px 0; margin-
   .main-nav { max-width: 100%; width: 100%; padding: 6vh 18px; }
   .main-nav .nav-links a { font-size: 1.25rem; padding: 10px 12px; }
 }
-
