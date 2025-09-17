@@ -36,75 +36,17 @@ async function securePage(pageFunction) {
 
 // --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
-    // Robust Mobile Navigation Logic from user
+    // Robust Mobile Navigation Logic
     (function() {
-      const mobileToggle = document.querySelector('.mobile-nav-toggle');
-      let mainNav = document.querySelector('#main-nav') || document.querySelector('.main-nav');
-      let navOverlay = document.querySelector('.nav-overlay');
-
-      if (!mainNav) {
-        console.warn('Main nav element not found. Aborting defensive nav patch.');
-        return;
-      }
-      if (!navOverlay) {
-        navOverlay = document.createElement('div');
-        navOverlay.className = 'nav-overlay';
-        navOverlay.setAttribute('aria-hidden', 'true');
-        mainNav.parentNode.insertBefore(navOverlay, mainNav);
-      } else {
-        if (navOverlay.nextElementSibling !== mainNav && mainNav.parentNode === navOverlay.parentNode) {
-          mainNav.parentNode.insertBefore(navOverlay, mainNav);
+        const mobileToggle = document.querySelector('.mobile-nav-toggle');
+        const mainNav = document.querySelector('#main-nav');
+        if (mobileToggle && mainNav) {
+            mobileToggle.addEventListener('click', () => {
+                mainNav.classList.toggle('active');
+                const expanded = mainNav.classList.contains('active');
+                mobileToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            });
         }
-      }
-
-      const MENU_Z = 1220;
-      const OVERLAY_Z = 1190;
-
-      navOverlay.style.pointerEvents = 'none';
-      navOverlay.style.opacity = '0';
-      navOverlay.style.zIndex = String(OVERLAY_Z);
-      mainNav.style.zIndex = String(MENU_Z);
-      mainNav.style.pointerEvents = 'auto';
-
-      function openNav() {
-        navOverlay.style.display = 'block';
-        setTimeout(() => {
-          navOverlay.style.opacity = '1';
-          navOverlay.style.pointerEvents = 'auto';
-          document.body.classList.add('nav-open');
-          document.body.style.overflow = 'hidden';
-          mainNav.setAttribute('data-visible', 'true');
-          if (mobileToggle) mobileToggle.setAttribute('aria-expanded', 'true');
-          mainNav.style.zIndex = String(MENU_Z);
-          navOverlay.style.zIndex = String(OVERLAY_Z);
-          mainNav.style.pointerEvents = 'auto';
-        }, 40);
-      }
-
-      function closeNav() {
-        navOverlay.style.opacity = '0';
-        navOverlay.style.pointerEvents = 'none';
-        mainNav.setAttribute('data-visible', 'false');
-        if (mobileToggle) mobileToggle.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('nav-open');
-        document.body.style.overflow = '';
-        setTimeout(() => { navOverlay.style.display = 'none'; }, 360);
-      }
-
-      if (mobileToggle) {
-        mobileToggle.removeEventListener('click', mobileToggle._narendraHandler);
-        mobileToggle._narendraHandler = (e) => {
-          const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
-          if (isOpen) closeNav(); else openNav();
-        };
-        mobileToggle.addEventListener('click', mobileToggle._narendraHandler);
-      }
-
-      navOverlay.addEventListener('click', () => {
-        closeNav();
-      });
-
-      mainNav.querySelectorAll('*').forEach(el => el.style.pointerEvents = 'auto');
     })();
     
     document.querySelectorAll('#logout-btn').forEach(btn => btn.addEventListener('click', handleLogout));
