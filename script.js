@@ -36,19 +36,16 @@ async function securePage(pageFunction) {
 
 // --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
-    // Robust Mobile Navigation Logic
-    (function() {
-        const mobileToggle = document.querySelector('.mobile-nav-toggle');
-        const mainNav = document.querySelector('#main-nav') || document.querySelector('.main-nav');
-
-        if (mobileToggle && mainNav) {
-            mobileToggle.addEventListener('click', () => {
-                mainNav.classList.toggle('active');
-                const expanded = mainNav.classList.contains('active');
-                mobileToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            });
-        }
-    })();
+    // Simple dropdown toggle
+    const mobileToggle = document.querySelector('.mobile-nav-toggle');
+    const mainNav = document.getElementById('main-nav');
+    if (mobileToggle && mainNav) {
+      mobileToggle.addEventListener('click', () => {
+        mainNav.classList.toggle('active');
+        const expanded = mainNav.classList.contains('active');
+        mobileToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      });
+    }
     
     document.querySelectorAll('#logout-btn').forEach(btn => btn.addEventListener('click', handleLogout));
 
