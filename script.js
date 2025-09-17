@@ -42,20 +42,29 @@ function setupUniversalListeners() {
 
     if (mobileToggle && mainNav && navOverlay) {
       function openNav() {
+        document.body.classList.add('nav-open');
+        if (mainNav) mainNav.style.zIndex = '1215';
+        if (navOverlay) navOverlay.style.zIndex = '1190';
         mainNav.setAttribute('data-visible','true');
         mobileToggle.setAttribute('aria-expanded','true');
-        document.body.classList.add('nav-open');
+        document.body.style.overflow = 'hidden';
       }
       function closeNav() {
         mainNav.setAttribute('data-visible','false');
         mobileToggle.setAttribute('aria-expanded','false');
         document.body.classList.remove('nav-open');
+        document.body.style.overflow = '';
+        setTimeout(() => {
+          if (navOverlay) {
+            navOverlay.style.pointerEvents = '';
+          }
+        }, 360);
       }
       mobileToggle.addEventListener('click', () => {
         const isOpen = mobileToggle.getAttribute('aria-expanded') === 'true';
         if (isOpen) closeNav(); else openNav();
       });
-      navOverlay.addEventListener('click', closeNav);
+      navOverlay?.addEventListener('click', closeNav);
       document.querySelectorAll('#main-nav a').forEach(a => a.addEventListener('click', () => {
         if (window.innerWidth < 769) closeNav();
       }));
@@ -426,12 +435,12 @@ async function placeOrder(user) {
         return total + (saree.price * item.quantity);
     }, 0);
     const note = userOrderItems[0]?.note || '';
-    const { error } = await supabase.from('orders').insert({ party_id: user.id, party_details: partyData, order_items: userOrderItems, grand_total: grandTotal, note: note });
+    const { error } = await supabase.from('orders').insert({ party_id: user.id, party_details: partyData, order_items: userOrderItems, grand_total: grandTotal, note: note, status: 'Pending' });
     if (error) { alert(`Error placing order: ${error.message}`); } 
     else {
         delete state.orders[user.id];
         localStorage.setItem('userOrders', JSON.stringify(state.orders));
-        showUserConfirmationModal("Order Placed Successfully! Thank you. Your order has been submitted for processing.", null, true);
+        showUserConfirmationModal("Order Placed Successfully!", "Thank you. Your order has been submitted for processing.", true);
     }
 }
 function renderOrderTable(user) {
@@ -620,29 +629,28 @@ function initProductPage(user) {
 }
 
 // User-side order cancellation
-function showUserConfirmationModal(message, onConfirm, isSuccess = false) {
+function showUserConfirmationModal(title, message, isSuccess = false, onConfirm = null) {
     const modal = document.getElementById('confirmation-modal');
-    const title = document.getElementById('confirmation-modal-title');
-    const msg = document.getElementById('confirmation-modal-message');
+    const modalTitle = document.getElementById('confirmation-modal-title');
+    const modalMsg = document.getElementById('confirmation-modal-message');
     const confirmBtn = document.getElementById('modal-confirm-btn-user');
     const cancelBtn = document.getElementById('modal-cancel-btn-user');
     const okBtn = document.getElementById('modal-close-btn-user');
 
-    msg.textContent = message;
+    modalTitle.textContent = title;
+    modalMsg.textContent = message;
     
     if (isSuccess) {
-        title.textContent = "Success!";
         confirmBtn.style.display = 'none';
         cancelBtn.style.display = 'none';
         okBtn.style.display = 'inline-block';
     } else {
-        title.textContent = "Confirm Cancellation";
         confirmBtn.style.display = 'inline-block';
         cancelBtn.style.display = 'inline-block';
         okBtn.style.display = 'none';
 
         const confirmHandler = () => {
-            onConfirm();
+            if(onConfirm) onConfirm();
             modal.style.display = 'none';
         };
         confirmBtn.addEventListener('click', confirmHandler, { once: true });
@@ -654,12 +662,10 @@ function showUserConfirmationModal(message, onConfirm, isSuccess = false) {
 
 async function cancelOrder(orderId, user) {
     const { error } = await supabase.from('orders').update({ status: 'Cancelled' }).eq('id', orderId).eq('party_id', user.id);
-
     if (error) {
         alert('Failed to cancel order. It may have already been processed.');
-        console.error('Cancellation Error:', error);
     } else {
-        alert('Order #' + orderId + ' has been cancelled.');
+        showUserConfirmationModal('Order Cancelled', `Your order #${orderId} has been successfully cancelled.`, true);
         renderPastOrders(user);
     }
 }
