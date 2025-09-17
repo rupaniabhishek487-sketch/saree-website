@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Narendra Sarees</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2.3">
+    <link rel="stylesheet" href="style.css?v=2.4">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
 </head>
 <body class="admin-body fade-in">
@@ -18,10 +18,12 @@
                 <a href="#register-party" class="admin-nav-link">Register New Party</a>
                 <a href="#view-parties" class="admin-nav-link">View All Parties</a>
                 <a href="#view-orders" class="admin-nav-link">View Orders</a>
+                <a href="#change-password" class="admin-nav-link">Change Password</a>
                 <a href="#" id="logout-btn" class="admin-nav-link">Logout</a>
             </nav>
         </aside>
         <main class="admin-main-content">
+            <!-- Dashboard Section -->
             <section id="dashboard" class="admin-section">
                 <h2>Dashboard Overview</h2>
                 <div class="dashboard-stats">
@@ -37,6 +39,8 @@
                     </table>
                 </div>
             </section>
+            
+            <!-- Add Saree Section -->
             <section id="add-saree" class="admin-section" style="display:none;">
                 <h2>Add New Saree</h2>
                 <form id="add-saree-form" class="admin-form">
@@ -63,6 +67,8 @@
                     <p id="add-saree-status" class="form-status-message"></p>
                 </form>
             </section>
+
+            <!-- Register Party Section -->
             <section id="register-party" class="admin-section" style="display:none;">
                 <h2>Register a New Wholesale Party</h2>
                 <form id="register-party-form" class="admin-form">
@@ -79,6 +85,8 @@
                     <p id="register-party-status" class="form-status-message"></p>
                 </form>
             </section>
+            
+            <!-- View Parties Section -->
             <section id="view-parties" class="admin-section" style="display:none;">
                 <h2>All Registered Parties</h2>
                 <div class="table-container">
@@ -88,6 +96,8 @@
                     </table>
                 </div>
             </section>
+            
+            <!-- View Orders Section -->
             <section id="view-orders" class="admin-section" style="display:none;">
                 <h2>All Submitted Orders</h2>
                 <div class="table-container">
@@ -98,6 +108,28 @@
                     </table>
                 </div>
             </section>
+            
+            <!-- Change Password Section -->
+            <section id="change-password" class="admin-section" style="display:none;">
+                <h2>Change Admin Password</h2>
+                <form id="change-password-form" class="admin-form">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password</label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmNewPassword">Confirm New Password</label>
+                        <input type="password" id="confirmNewPassword" required>
+                    </div>
+                    <button type="submit" class="btn">Update Password</button>
+                    <p id="change-password-status" class="form-status-message"></p>
+                </form>
+            </section>
+
         </main>
     </div>
     <div id="edit-saree-modal" class="modal" style="display: none;">
@@ -131,6 +163,6 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="script.js?v=2.3"></script>
+    <script type="module" src="script.js?v=2.4"></script>
 </body>
 </html>
