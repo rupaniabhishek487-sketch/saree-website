@@ -11,6 +11,8 @@ let state = {
     orders: JSON.parse(localStorage.getItem('userOrders')) || {},
 };
 
+let selectedCategory = 'All'; // Keep track of the selected category
+
 // --- Main Entry Point ---
 document.addEventListener('DOMContentLoaded', () => {
     const page = window.location.pathname.split("/").pop() || 'index.html';
@@ -29,28 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Security & Page Guards ---
 async function securePage(pageFunction) {
-    // Admin dashboard has its own password check, not Supabase auth
-    if (window.location.pathname.includes('admin-dashboard.html')) {
-        if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') {
-            window.location.href = 'admin.html';
-        } else {
-            initAdminDashboard();
-        }
-        return;
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { 
+    if (!session && !window.location.pathname.includes('admin-dashboard.html')) { 
         window.location.href = 'index.html'; 
     } else { 
         await loadSareesFromDB(); 
-        pageFunction(session.user); 
+        pageFunction(session?.user); 
     }
 }
 
-
 // --- Universal Listeners & Mobile Nav ---
 function setupUniversalListeners() {
+    // Simple dropdown toggle
     const mobileToggle = document.querySelector('.mobile-nav-toggle');
     const mainNav = document.getElementById('main-nav');
     if (mobileToggle && mainNav) {
@@ -77,7 +69,6 @@ async function handleLogout(e) {
     sessionStorage.removeItem('isAdminAuthenticated'); 
     localStorage.removeItem('userOrders'); 
     const { error } = await supabase.auth.signOut();
-    // Always redirect to login, even if there was a minor signout error
     window.location.href = 'index.html';
 }
 
@@ -87,7 +78,7 @@ function initLoginPage() {
         const rememberedUser = localStorage.getItem('rememberedUser');
         if (rememberedUser) {
             try {
-                const { email, pass } = JSON.parse(atob(rememberedUser)); // Decode object
+                const { email, pass } = JSON.parse(atob(rememberedUser));
                 document.getElementById('username').value = email;
                 document.getElementById('password').value = pass;
                 document.getElementById('remember-me').checked = true;
@@ -108,7 +99,7 @@ async function handleLogin(e) {
 
     if (rememberMe) {
         const userCredentials = { email: email, pass: password };
-        localStorage.setItem('rememberedUser', btoa(JSON.stringify(userCredentials))); // Encode object
+        localStorage.setItem('rememberedUser', btoa(JSON.stringify(userCredentials)));
     } else {
         localStorage.removeItem('rememberedUser');
     }
@@ -164,6 +155,7 @@ async function loadSareesFromDB() {
 
 // --- Admin Dashboard Logic ---
 async function initAdminDashboard() {
+    if (sessionStorage.getItem('isAdminAuthenticated') !== 'true') { window.location.href = 'admin.html'; return; }
     const navLinks = document.querySelectorAll('.admin-nav-link');
     const sections = document.querySelectorAll('.admin-section');
     navLinks.forEach(link => {
@@ -432,15 +424,32 @@ async function initHomePage(user) {
     if (data) document.getElementById('welcome-message').textContent = `Welcome, ${data.party_name}`;
     document.getElementById('search-bar')?.addEventListener('input', updateProductGrid);
     document.getElementById('sort-options')?.addEventListener('change', updateProductGrid);
-    const categories = [...new Set(state.sarees.map(s => s.category))];
+    const categories = ['All', ...new Set(state.sarees.map(s => s.category))];
     const categoryGrid = document.getElementById('category-grid');
-    if (categoryGrid) { categoryGrid.innerHTML = categories.map(cat => `<a href="#" class="category-link" data-category="${cat}">${cat}</a>`).join(''); }
+    if (categoryGrid) { 
+        categoryGrid.innerHTML = categories.map(cat => `<a href="#" class="category-link ${cat === 'All' ? 'active' : ''}" data-category="${cat}">${cat}</a>`).join('');
+        categoryGrid.addEventListener('click', e => {
+            if (e.target.matches('.category-link')) {
+                e.preventDefault();
+                selectedCategory = e.target.dataset.category;
+                categoryGrid.querySelectorAll('.category-link').forEach(link => link.classList.remove('active'));
+                e.target.classList.add('active');
+                updateProductGrid();
+            }
+        });
+    }
     updateProductGrid();
 }
 function updateProductGrid() {
     const searchTerm = document.getElementById('search-bar')?.value.toLowerCase() || '';
     const sortValue = document.getElementById('sort-options')?.value || 'date-desc';
-    let filteredSarees = state.sarees.filter(saree => saree.name.toLowerCase().includes(searchTerm));
+    let filteredSarees = state.sarees;
+    if (selectedCategory && selectedCategory !== 'All') {
+        filteredSarees = state.sarees.filter(saree => saree.category === selectedCategory);
+    }
+    if (searchTerm) {
+        filteredSarees = filteredSarees.filter(saree => saree.name.toLowerCase().includes(searchTerm));
+    }
     switch (sortValue) {
         case 'price-asc': filteredSarees.sort((a, b) => a.price - b.price); break;
         case 'price-desc': filteredSarees.sort((a, b) => b.price - a.price); break;
