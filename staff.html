@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal - Narendra Sarees</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="staff.css?v=FINAL">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
+</head>
+<body>
+    <div id="staff-login-page" style="display: none;">
+        <div class="login-container">
+            <div class="login-box">
+                <h1 class="login-title">Staff Login</h1>
+                <form id="staff-login-form">
+                    <div class="input-group"><label for="staff-email">Email</label><input type="email" id="staff-email" required></div>
+                    <div class="input-group"><label for="staff-password">Password</label><input type="password" id="staff-password" required></div>
+                    <button type="submit" class="btn-login">Login</button>
+                    <p id="staff-login-error" class="login-error-message"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="staff-dashboard-page" style="display: none;">
+        <header class="site-header sticky-nav">
+            <div class="container header-inner">
+                <div class="logo">Staff Portal</div>
+                <nav><a href="#" id="staff-logout-btn">Logout</a></nav>
+            </div>
+        </header>
+        <main class="container">
+            <h1 id="staff-welcome-message">Welcome, Staff</h1>
+            <div id="kit-selection-area">
+                <h2>Your Assigned Kit</h2>
+                <p id="kit-name"></p>
+            </div>
+            <div class="label-input-area">
+                <label for="label-number-input">Enter Label Number:</label>
+                <input type="number" id="label-number-input" placeholder="e.g., 101">
+            </div>
+            <div id="kit-items-grid" class="product-grid"></div>
+            <div id="staff-cart" class="cart-container">
+                <h2>Current Order</h2>
+                <div id="staff-cart-items"></div>
+                <div class="party-details-form">
+                    <h3>Party Details</h3>
+                    <input type="text" id="party-name" placeholder="Party Name" required>
+                    <textarea id="party-address" placeholder="Party Address"></textarea>
+                    <input type="text" id="party-gst" placeholder="Party GST Number">
+                    <textarea id="order-note" placeholder="Special Note / Instructions..."></textarea>
+                </div>
+                <button id="submit-staff-order" class="btn">Submit Order</button>
+                <p id="staff-order-status"></p>
+            </div>
+        </main>
+    </div>
+
+    <div id="product-modal" class="modal" style="display: none;">
+        <div class="modal-content large">
+            <span class="close-button">&times;</span>
+            <div id="modal-product-content"></div>
+        </div>
+    </div>
+    
+    <div class="image-lightbox"><span class="lightbox-close">&times;</span><img src="" alt="Zoomed Image"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="staff.js?v=FINAL"></script>
+</body>
+</html>
+
