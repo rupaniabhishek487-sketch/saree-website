@@ -42,6 +42,8 @@ body {
 .action-btn.edit:hover { background-color: #f0f0f0; }
 .action-btn.delete { color: var(--danger-color); }
 .action-btn.delete:hover { background-color: var(--danger-color); color: white; }
+.btn-cancel { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 5px 10px; font-size: 0.8rem; }
+.btn-cancel:hover { background-color: var(--danger-color); color: white; }
 
 /* --- Header & New Dropdown Navigation --- */
 .site-header {
@@ -84,7 +86,6 @@ body {
   background: #fff;
   border-top: 1px solid #ddd;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  z-index: 1200;
 }
 .main-nav.active {
   display: block;
