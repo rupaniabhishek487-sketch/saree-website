@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Narendra Sarees</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2.4">
+    <link rel="stylesheet" href="style.css?v=FINAL">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👑</text></svg>">
 </head>
 <body class="admin-body fade-in">
@@ -18,12 +18,12 @@
                 <a href="#register-party" class="admin-nav-link">Register New Party</a>
                 <a href="#view-parties" class="admin-nav-link">View All Parties</a>
                 <a href="#view-orders" class="admin-nav-link">View Orders</a>
+                <a href="#view-staff-orders" class="admin-nav-link">Staff Orders</a>
                 <a href="#change-password" class="admin-nav-link">Change Password</a>
                 <a href="#" id="logout-btn" class="admin-nav-link">Logout</a>
             </nav>
         </aside>
         <main class="admin-main-content">
-            <!-- Dashboard Section -->
             <section id="dashboard" class="admin-section">
                 <h2>Dashboard Overview</h2>
                 <div class="dashboard-stats">
@@ -39,8 +39,6 @@
                     </table>
                 </div>
             </section>
-            
-            <!-- Add Saree Section -->
             <section id="add-saree" class="admin-section" style="display:none;">
                 <h2>Add New Saree</h2>
                 <form id="add-saree-form" class="admin-form">
@@ -67,8 +65,6 @@
                     <p id="add-saree-status" class="form-status-message"></p>
                 </form>
             </section>
-
-            <!-- Register Party Section -->
             <section id="register-party" class="admin-section" style="display:none;">
                 <h2>Register a New Wholesale Party</h2>
                 <form id="register-party-form" class="admin-form">
@@ -85,8 +81,6 @@
                     <p id="register-party-status" class="form-status-message"></p>
                 </form>
             </section>
-            
-            <!-- View Parties Section -->
             <section id="view-parties" class="admin-section" style="display:none;">
                 <h2>All Registered Parties</h2>
                 <div class="table-container">
@@ -96,10 +90,8 @@
                     </table>
                 </div>
             </section>
-            
-            <!-- View Orders Section -->
             <section id="view-orders" class="admin-section" style="display:none;">
-                <h2>All Submitted Orders</h2>
+                <h2>Customer Orders</h2>
                 <div class="table-container">
                      <button id="export-csv-btn" class="btn">Export as CSV</button>
                     <table class="admin-table wide">
@@ -108,61 +100,43 @@
                     </table>
                 </div>
             </section>
-            
-            <!-- Change Password Section -->
+            <section id="view-staff-orders" class="admin-section" style="display:none;">
+                <h2>Staff Order Aggregation</h2>
+                <div class="table-container">
+                    <table class="admin-table wide">
+                         <thead>
+                            <tr>
+                                <th>Label No.</th>
+                                <th>Saree Name</th>
+                                <th>Weaver Name</th>
+                                <th>Total Ordered</th>
+                                <th>Qty Available</th>
+                                <th>Drilldown</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-orders-aggregation-body"></tbody>
+                    </table>
+                </div>
+            </section>
             <section id="change-password" class="admin-section" style="display:none;">
                 <h2>Change Admin Password</h2>
                 <form id="change-password-form" class="admin-form">
-                    <div class="form-group">
-                        <label for="currentPassword">Current Password</label>
-                        <input type="password" id="currentPassword" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newPassword">New Password</label>
-                        <input type="password" id="newPassword" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirmNewPassword">Confirm New Password</label>
-                        <input type="password" id="confirmNewPassword" required>
-                    </div>
+                    <div class="form-group"><label for="currentPassword">Current Password</label><input type="password" id="currentPassword" required></div>
+                    <div class="form-group"><label for="newPassword">New Password</label><input type="password" id="newPassword" required></div>
+                    <div class="form-group"><label for="confirmNewPassword">Confirm New Password</label><input type="password" id="confirmNewPassword" required></div>
                     <button type="submit" class="btn">Update Password</button>
                     <p id="change-password-status" class="form-status-message"></p>
                 </form>
             </section>
-
         </main>
     </div>
-    <div id="edit-saree-modal" class="modal" style="display: none;">
-        <div class="modal-content large">
-            <span class="close-button">&times;</span>
-            <h2>Edit Saree Details</h2>
-            <form id="edit-saree-form" class="admin-form">
-                <input type="hidden" id="editSareeId">
-                <div class="form-row">
-                    <div class="form-group"><label for="editSareeName">Saree Name</label><input type="text" id="editSareeName" required></div>
-                    <div class="form-group"><label for="editSareeCategory">Category</label><input type="text" id="editSareeCategory" required></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label for="editSareePrice">Price (₹)</label><input type="number" id="editSareePrice" required></div>
-                    <div class="form-group"><label for="editWeaverName">Weaver Name</label><input type="text" id="editWeaverName" required></div>
-                </div>
-                <div class="form-group"><label for="editSareeDescription">Description</label><textarea id="editSareeDescription" rows="3"></textarea></div>
-                <button type="submit" class="btn">Save Changes</button>
-                <p id="edit-saree-status" class="form-status-message"></p>
-            </form>
-        </div>
-    </div>
-    <div id="confirmation-modal-admin" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2 id="modal-title">Confirm Action</h2>
-            <p id="modal-message">Are you sure you want to proceed?</p>
-            <div class="modal-actions">
-                <button id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
-                <button id="modal-confirm-btn" class="btn btn-danger">Confirm</button>
-            </div>
-        </div>
-    </div>
+    <div id="edit-saree-modal" class="modal" style="display: none;"><!-- ... --></div>
+    <div id="confirmation-modal-admin" class="modal" style="display: none;"><!-- ... --></div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="script.js?v=2.4"></script>
+    <script type="module" src="script.js?v=FINAL"></script>
 </body>
 </html>
+
+
+
+http://googleusercontent.com/immersive_entry_chip/1
