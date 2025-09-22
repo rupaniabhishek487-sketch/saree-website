@@ -317,7 +317,7 @@ async function renderAdminOrdersTable() {
         return `<tr>
             <td>${order.id}</td>
             <td>${order.party_details.party_name}</td>
-            <td>${orderDetails}${order.note ? `<span class="customer-note-display"><em>Note: ${order.note}</em></span>` : ''}</td>
+            <td>${orderDetails}<br>${order.note ? `<span class="customer-note-display"><em>Note: ${order.note}</em></span>` : ''}</td>
             <td>₹${order.grand_total.toLocaleString('en-IN')}</td>
             <td>${new Date(order.created_at).toLocaleString()}</td>
             <td><select class="order-status-select" data-order-id="${order.id}">${statuses.map(s => `<option value="${s}" ${order.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td>
@@ -514,7 +514,7 @@ function renderOrderTable(user) {
         const itemTotal = Number(saree.price) * item.quantity;
         total += itemTotal;
         const details = item.type === 'Mix' ? 'All Designs, All Colors' : `Design #${item.design}, Colors: ${item.colors.join(', ')}`;
-        return `<tr><td>${saree.name}<small>${details}</small></td><td>${item.quantity}</td><td>₹${Number(saree.price).toLocaleString('en-IN')}</td><td>₹${itemTotal.toLocaleString('en-IN')}</td><td><button class="remove-item-btn" data-index="${index}">✖</button></td></tr>`;
+        return `<tr><td>${saree.name}<br><small>${details}</small></td><td>${item.quantity}</td><td>₹${Number(saree.price).toLocaleString('en-IN')}</td><td>₹${itemTotal.toLocaleString('en-IN')}</td><td><button class="remove-item-btn" data-index="${index}">✖</button></td></tr>`;
     }).join('');
     orderTotalSection.innerHTML = `<p>Grand Total: ₹${total.toLocaleString('en-IN')}</p><button class="btn" id="place-order-btn">Place Order</button>`;
     document.querySelectorAll('.remove-item-btn').forEach(btn => btn.addEventListener('click', e => removeOrderItem(user, e.target.dataset.index)));
