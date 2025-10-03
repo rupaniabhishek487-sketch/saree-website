@@ -93,13 +93,14 @@
         const currentOrderTotal = document.getElementById('current-order-total');
         const submitOrderButton = document.getElementById('submit-order-button');
         const orderMessage = document.getElementById('order-message');
+        const addToOrderModal = document.getElementById('add-to-order-modal');
         
         // --- STATE ---
         let currentUser = null;
         let products = [];
         let currentOrder = {
             partyName: '',
-            items: [], // Will store {product, quantity, selected_colors, designType}
+            items: [], // Will store {product, quantity, selected_colors, designType, color_quantities}
             notes: '',
             total: 0
         };
@@ -287,6 +288,7 @@
                         quantity,
                         selected_color,
                         design_type,
+                        color_quantities,
                         products (*)
                     ),
                     profiles (email)
@@ -346,13 +348,21 @@
                                 ${order.order_items.map(item => {
                                     if (!item.products) return '';
                                     const itemImage = item.products.image_url ? item.products.image_url.split(',')[0].trim() : 'https://placehold.co/100x100/eee/ccc?text=No+Image';
+                                    
+                                    let colorDetails = '';
+                                    if(item.design_type === 'Individual' && item.color_quantities) {
+                                        colorDetails = Object.entries(item.color_quantities).map(([color, qty]) => `${color} (x${qty})`).join(', ');
+                                    } else {
+                                        colorDetails = item.selected_color || '';
+                                    }
+
                                     return `
                                     <div class="border p-2 rounded-lg text-center bg-white hover:shadow-lg transition">
                                         <img src="${itemImage}" class="w-full h-20 md:h-28 object-cover rounded-md mx-auto shadow-sm">
                                         <p class="text-xs md:text-sm font-semibold mt-1 truncate">${item.products.name}</p>
                                         <p class="text-xs text-gray-500">#${item.products.unique_number}</p>
                                         <p class="text-xs font-semibold text-gray-600">${item.design_type || 'Mix'}</p>
-                                        <p class="text-xs font-medium text-gray-800 truncate">${item.selected_color || ''}</p>
+                                        <p class="text-xs font-medium text-gray-800 truncate" title="${colorDetails}">${colorDetails}</p>
                                         <p class="text-xs md:text-sm font-bold text-indigo-600">${item.quantity} x ${formatCurrency(item.products.rate)}</p>
                                     </div>
                                 `}).join('')}
@@ -375,9 +385,8 @@
                 console.error("Error updating status:", error);
                 alert('Could not update order status.');
             } else {
-                // Find the badge and update it visually without a full re-render
                 const selectEl = document.querySelector(`select[data-order-id="${orderId}"]`);
-                const statusBadge = selectEl.closest('.flex').querySelector('.status-badge');
+                const statusBadge = selectEl.closest('div.flex').querySelector('.status-badge');
                 statusBadge.textContent = newStatus;
                 statusBadge.className = `status-badge text-sm font-medium px-2.5 py-0.5 rounded ${getStatusColor(newStatus)}`;
             }
@@ -554,7 +563,7 @@
                 const isAdded = currentOrder.items.some(item => item.product.id === p.id);
                 const buttonHtml = isAdded
                     ? `<button class="w-full bg-gray-400 text-white font-bold py-2 px-4 rounded-lg mt-2 cursor-not-allowed" disabled>Added</button>`
-                    : `<button data-id="${p.id}" class="add-to-order-btn w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-2 px-4 rounded-lg mt-2 hover:from-green-600 hover:to-emerald-700 shadow-lg transform hover:scale-105 transition-all duration-200">Add to Order</button>`;
+                    : `<button data-id="${p.id}" class="open-add-modal-btn w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-2 px-4 rounded-lg mt-2 hover:from-green-600 hover:to-emerald-700 shadow-lg transform hover:scale-105 transition-all duration-200">Add to Order</button>`;
                 
                 const imageUrls = p.image_url ? p.image_url.split(',').map(url => url.trim()).filter(url => url) : ['https://placehold.co/400x400/eee/ccc?text=No+Image'];
 
@@ -581,17 +590,6 @@
                             <div class="flex justify-between items-center text-sm text-gray-500 mt-1">
                               <span>#${p.unique_number}</span>
                             </div>
-                            <div class="mt-2">
-                                <p class="text-sm font-semibold mb-1">Select Color(s):</p>
-                                <div class="flex flex-wrap gap-2">
-                                    ${p.color.split(',').map(c => `
-                                        <div>
-                                            <input type="checkbox" name="color-${p.id}" id="color-${p.id}-${c.trim()}" value="${c.trim()}" class="hidden peer">
-                                            <label for="color-${p.id}-${c.trim()}" class="text-xs font-semibold text-gray-700 px-3 py-1 rounded-full border-2 border-gray-300 cursor-pointer peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition">${c.trim()}</label>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
                         </div>
                         <div class="mt-auto pt-2">
                           <p class="font-semibold text-2xl text-primary mt-2">${formatCurrency(p.rate)}</p>
@@ -610,8 +608,8 @@
             const { data: orders, error } = await supabase
                 .from('orders')
                 .select(`
-                    id, created_at, party_name, total_amount, status,
-                    order_items ( products (name, unique_number) )
+                    id, created_at, party_name, total_amount, status, notes,
+                    order_items ( quantity, selected_color, design_type, color_quantities, products (name, unique_number) )
                 `)
                 .eq('staff_id', currentUser.id)
                 .order('created_at', { ascending: false });
@@ -628,35 +626,111 @@
 
             myOrdersContent.innerHTML = orders.map(order => {
                 const statusColor = getStatusColor(order.status);
-                const productSummary = order.order_items.map(oi => `${oi.products.name} (#${oi.products.unique_number})`).join(', ');
+                
+                const itemsHtml = order.order_items.map(item => {
+                     let colorDetails = '';
+                    if(item.design_type === 'Individual' && item.color_quantities) {
+                        colorDetails = Object.entries(item.color_quantities).map(([color, qty]) => `<span class="ml-4 block">- ${color} (Qty: ${qty})</span>`).join('');
+                    } else {
+                        colorDetails = `<span class="ml-4 block">- ${item.selected_color} (Total Qty: ${item.quantity})</span>`;
+                    }
+                    return `
+                        <div class="mt-2">
+                            <p class="font-semibold text-gray-700">${item.products.name} (#${item.products.unique_number}) - <span class="font-normal">${item.design_type}</span></p>
+                            <div class="text-sm text-gray-600">${colorDetails}</div>
+                        </div>
+                    `
+                }).join('');
+
                 return `
                     <div class="bg-white p-4 rounded-lg shadow-md mb-4">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="font-bold text-lg text-gray-800">${order.party_name}</p>
                                 <p class="text-sm text-gray-500">${new Date(order.created_at).toLocaleString()}</p>
-                                <p class="text-sm text-gray-600 mt-2"><strong>Items:</strong> ${productSummary}</p>
                             </div>
                             <div class="text-right">
                                 <p class="font-semibold text-primary">${formatCurrency(order.total_amount)}</p>
                                 <span class="text-xs font-medium px-2.5 py-0.5 rounded mt-2 inline-block ${statusColor}">${order.status}</span>
                             </div>
                         </div>
+                        <div class="mt-3 border-t pt-3">
+                            <h4 class="font-semibold text-sm">Items:</h4>
+                            ${itemsHtml}
+                        </div>
                     </div>
                 `
             }).join('');
         }
-        
-        function handleAddToOrder(productId) {
+
+        function openAddToOrderModal(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            
+            const modalTitle = addToOrderModal.querySelector('#add-modal-title');
+            const form = addToOrderModal.querySelector('form');
+            form.dataset.productId = productId;
+            form.reset();
+
+            modalTitle.textContent = `${product.name} (#${product.unique_number})`;
+
+            const designTypeRadios = form.querySelectorAll('input[name="add-modal-design-type"]');
+            const mixOptions = form.querySelector('#add-modal-mix-options');
+            const individualOptions = form.querySelector('#add-modal-individual-options');
+
+            // Populate color options for both sections
+            const colors = product.color.split(',').map(c => c.trim());
+            const mixColorHtml = colors.map(c => `
+                 <div>
+                    <input type="checkbox" name="add-modal-mix-color" id="mix-color-${c}" value="${c}" class="hidden peer">
+                    <label for="mix-color-${c}" class="text-sm font-semibold text-gray-700 px-3 py-1 rounded-full border-2 border-gray-300 cursor-pointer peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition">${c}</label>
+                </div>
+            `).join('');
+            form.querySelector('#add-modal-mix-colors').innerHTML = mixColorHtml;
+
+            const individualColorHtml = colors.map(c => `
+                <div class="flex justify-between items-center">
+                    <label for="individual-qty-${c}" class="text-sm font-medium text-gray-700">${c}</label>
+                    <input type="number" name="individual-qty" data-color="${c}" id="individual-qty-${c}" min="0" value="0" class="w-20 text-center border border-gray-300 rounded-md">
+                </div>
+            `).join('');
+            individualOptions.querySelector('#add-modal-individual-colors').innerHTML = individualColorHtml;
+
+
+            function toggleDesignView() {
+                if (form.querySelector('input[name="add-modal-design-type"]:checked').value === 'Mix') {
+                    mixOptions.classList.remove('hidden');
+                    individualOptions.classList.add('hidden');
+                } else {
+                    mixOptions.classList.add('hidden');
+                    individualOptions.classList.remove('hidden');
+                }
+            }
+
+            designTypeRadios.forEach(radio => radio.addEventListener('change', toggleDesignView));
+            
+            toggleDesignView();
+            addToOrderModal.classList.remove('hidden');
+        }
+
+        function handleAddToOrderFromModal(e) {
+            e.preventDefault();
+            const form = e.target;
+            const productId = parseInt(form.dataset.productId, 10);
+            const product = products.find(p => p.id === productId);
+
             const partyName = currentOrderPartyName.value.trim();
             if (!partyName) {
                 alert('Please enter a Party Name before adding items.');
                 currentOrderPartyName.focus();
+                addToOrderModal.classList.add('hidden');
                 return;
             }
+
             if(currentOrder.partyName && currentOrder.partyName !== partyName) {
                 if(!confirm('Changing party name will clear the current order. Continue?')) {
                     currentOrderPartyName.value = currentOrder.partyName;
+                    addToOrderModal.classList.add('hidden');
                     return;
                 }
                 resetOrder();
@@ -664,41 +738,58 @@
             }
             currentOrder.partyName = partyName;
 
-            const selectedColorInputs = document.querySelectorAll(`input[name="color-${productId}"]:checked`);
-            if (selectedColorInputs.length === 0) {
-                alert('Please select at least one color for the saree.');
-                return;
-            }
-            const selectedColors = Array.from(selectedColorInputs).map(input => input.value);
+            const designType = form.querySelector('input[name="add-modal-design-type"]:checked').value;
+            
+            let totalQuantity = 0;
+            let selected_colors = [];
+            let color_quantities = {};
 
-            const product = products.find(p => p.id === productId);
-            if (product) {
-                currentOrder.items.push({ product, quantity: 1, selected_colors: selectedColors, designType: 'Mix' });
-                updateCurrentOrderDisplay();
-                renderStaffProductGrid(products.filter(p => p.unique_number.toString().includes(staffSearchInput.value)));
+            if (designType === 'Mix') {
+                const colorCheckboxes = form.querySelectorAll('input[name="add-modal-mix-color"]:checked');
+                if (colorCheckboxes.length === 0) {
+                    alert('Please select at least one color for Mix Design.');
+                    return;
+                }
+                selected_colors = Array.from(colorCheckboxes).map(cb => cb.value);
+                totalQuantity = parseInt(form.querySelector('#add-modal-mix-quantity').value, 10) || 0;
+                if (totalQuantity <= 0) {
+                    alert('Please enter a quantity greater than zero for Mix Design.');
+                    return;
+                }
+            } else { // Individual
+                const qtyInputs = form.querySelectorAll('input[name="individual-qty"]');
+                qtyInputs.forEach(input => {
+                    const qty = parseInt(input.value, 10) || 0;
+                    if (qty > 0) {
+                        const color = input.dataset.color;
+                        color_quantities[color] = qty;
+                        selected_colors.push(color);
+                        totalQuantity += qty;
+                    }
+                });
+                if (totalQuantity <= 0) {
+                    alert('Please enter a quantity for at least one color for Individual Design.');
+                    return;
+                }
             }
+
+            currentOrder.items.push({
+                product,
+                quantity: totalQuantity,
+                selected_colors,
+                designType,
+                color_quantities: designType === 'Individual' ? color_quantities : null
+            });
+
+            updateCurrentOrderDisplay();
+            renderStaffProductGrid(products.filter(p => p.unique_number.toString().includes(staffSearchInput.value)));
+            addToOrderModal.classList.add('hidden');
         }
         
         function handleRemoveFromOrder(productId) {
             currentOrder.items = currentOrder.items.filter(item => item.product.id !== productId);
             updateCurrentOrderDisplay();
             renderStaffProductGrid(products.filter(p => p.unique_number.toString().includes(staffSearchInput.value)));
-        }
-
-        function handleQuantityChange(productId, newQuantity) {
-            const item = currentOrder.items.find(i => i.product.id === productId);
-            if (item) {
-                item.quantity = Math.max(1, newQuantity); // Ensure quantity is at least 1
-            }
-            updateCurrentOrderDisplay();
-        }
-
-        function handleDesignTypeChange(productId, newDesignType) {
-            const item = currentOrder.items.find(i => i.product.id === productId);
-            if (item) {
-                item.designType = newDesignType;
-            }
-            updateCurrentOrderDisplay();
         }
 
         function updateCurrentOrderDisplay() {
@@ -709,32 +800,24 @@
             } else {
                  currentOrder.items.forEach(item => {
                     total += item.product.rate * item.quantity;
+                    let colorDetails = '';
+                     if(item.designType === 'Individual' && item.color_quantities) {
+                        colorDetails = Object.entries(item.color_quantities).map(([color, qty]) => `${color}(${qty})`).join(', ');
+                    } else {
+                        colorDetails = item.selected_colors.join(', ');
+                    }
+
                     const itemHtml = `
                         <li class="py-3 border-b border-gray-200">
                             <div class="flex justify-between items-start">
                                 <div>
                                     <p class="font-semibold text-gray-800">${item.product.name} (#${item.product.unique_number})</p>
-                                    <p class="text-sm text-gray-500 font-medium">${item.selected_colors.join(', ')}</p>
-                                    <p class="text-sm text-gray-600">${formatCurrency(item.product.rate)}</p>
+                                    <p class="text-sm text-gray-500 font-medium">${colorDetails}</p>
+                                    <p class="text-xs text-gray-500">${item.designType} Design</p>
                                 </div>
                                 <button data-id="${item.product.id}" class="remove-from-order-btn text-red-500 hover:text-red-700 font-bold text-xl flex-shrink-0">&times;</button>
                             </div>
-                            <div class="flex items-center justify-between mt-2">
-                                <div class="flex gap-2 text-xs">
-                                    <div>
-                                        <input type="radio" name="item-design-${item.product.id}" id="item-design-mix-${item.product.id}" value="Mix" class="hidden peer" ${item.designType === 'Mix' ? 'checked' : ''} data-id="${item.product.id}">
-                                        <label for="item-design-mix-${item.product.id}" class="px-2 py-1 rounded-md border cursor-pointer peer-checked:bg-gray-200">Mix</label>
-                                    </div>
-                                    <div>
-                                        <input type="radio" name="item-design-${item.product.id}" id="item-design-ind-${item.product.id}" value="Individual" class="hidden peer" ${item.designType === 'Individual' ? 'checked' : ''} data-id="${item.product.id}">
-                                        <label for="item-design-ind-${item.product.id}" class="px-2 py-1 rounded-md border cursor-pointer peer-checked:bg-gray-200">Individual</label>
-                                    </div>
-                                </div>
-                                <div class="flex items-center">
-                                    <label for="qty-${item.product.id}" class="text-sm mr-2">Qty:</label>
-                                    <input type="number" id="qty-${item.product.id}" data-id="${item.product.id}" class="quantity-input w-16 text-center border border-gray-300 rounded-md" value="${item.quantity}" min="1">
-                                </div>
-                            </div>
+                             <div class="text-right font-semibold text-gray-700 mt-1">${item.quantity} x ${formatCurrency(item.product.rate)}</div>
                         </li>
                     `;
                     currentOrderItems.insertAdjacentHTML('beforeend', itemHtml);
@@ -779,7 +862,8 @@
                 product_id: item.product.id,
                 quantity: item.quantity,
                 selected_color: item.selected_colors.join(', '),
-                design_type: item.designType
+                design_type: item.designType,
+                color_quantities: item.color_quantities
             }));
             
             const { error: itemsError } = await supabase.from('order_items').insert(orderItemsData);
@@ -933,24 +1017,47 @@
                 const filtered = products.filter(p => p.unique_number.toString().toLowerCase().includes(searchTerm));
                 renderStaffProductGrid(filtered);
             });
+            
+            let touchstartX = 0;
+            let touchendX = 0;
+
+            function handleSwipe(carousel, direction) {
+                const images = JSON.parse(carousel.dataset.images);
+                if (images.length <= 1) return;
+                
+                let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
+                currentIndex = (currentIndex + direction + images.length) % images.length;
+                
+                carousel.querySelector('img').src = images[currentIndex];
+                carousel.dataset.currentIndex = currentIndex;
+                carousel.querySelector('.image-count-indicator').textContent = `${currentIndex + 1} / ${images.length}`;
+            }
+
+            staffProductGrid.addEventListener('touchstart', e => {
+                if (e.target.closest('.image-carousel')) {
+                    touchstartX = e.changedTouches[0].screenX;
+                }
+            }, {passive: true});
+
+            staffProductGrid.addEventListener('touchend', e => {
+                if (e.target.closest('.image-carousel')) {
+                    touchendX = e.changedTouches[0].screenX;
+                    const carousel = e.target.closest('.image-carousel');
+                    if (touchendX < touchstartX) handleSwipe(carousel, 1); // Swiped left
+                    if (touchendX > touchstartX) handleSwipe(carousel, -1); // Swiped right
+                }
+            });
 
             staffProductGrid.addEventListener('click', e => {
-                if (e.target.closest('.add-to-order-btn')) {
-                    const id = parseInt(e.target.closest('.add-to-order-btn').dataset.id);
-                    handleAddToOrder(id);
+                if (e.target.closest('.open-add-modal-btn')) {
+                    const id = parseInt(e.target.closest('.open-add-modal-btn').dataset.id);
+                    openAddToOrderModal(id);
                 }
                 if (e.target.closest('.carousel-btn')) {
                     const button = e.target.closest('.carousel-btn');
                     const carousel = button.closest('.image-carousel');
-                    const images = JSON.parse(carousel.dataset.images);
-                    let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
                     const direction = parseInt(button.dataset.direction, 10);
-
-                    currentIndex = (currentIndex + direction + images.length) % images.length;
-                    
-                    carousel.querySelector('img').src = images[currentIndex];
-                    carousel.dataset.currentIndex = currentIndex;
-                    carousel.querySelector('.image-count-indicator').textContent = `${currentIndex + 1} / ${images.length}`;
+                    handleSwipe(carousel, direction);
                 }
             });
             
@@ -961,20 +1068,13 @@
                 }
             });
 
-            currentOrderItems.addEventListener('change', e => {
-                if (e.target.classList.contains('quantity-input')) {
-                    const id = parseInt(e.target.dataset.id);
-                    const newQuantity = parseInt(e.target.value, 10);
-                    handleQuantityChange(id, newQuantity);
-                }
-                if (e.target.name.startsWith('item-design-')) {
-                    const id = parseInt(e.target.dataset.id);
-                    const newDesignType = e.target.value;
-                    handleDesignTypeChange(id, newDesignType);
-                }
+            submitOrderButton.addEventListener('click', handleSubmitOrder);
+
+            addToOrderModal.querySelector('form').addEventListener('submit', handleAddToOrderFromModal);
+            addToOrderModal.querySelector('#cancel-add-modal-button').addEventListener('click', () => {
+                addToOrderModal.classList.add('hidden');
             });
 
-            submitOrderButton.addEventListener('click', handleSubmitOrder);
 
             populateLoginFormFromStorage();
             checkUserSession();
@@ -1227,6 +1327,57 @@
             </div>
         </div>
     </main>
+
+    <!-- Add to Order Modal -->
+    <div id="add-to-order-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-40">
+        <div class="bg-white rounded-lg p-6 md:p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h3 id="add-modal-title" class="text-2xl font-bold mb-4">Add Saree to Order</h3>
+            <form>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2">Design Type</label>
+                    <div class="flex gap-4">
+                        <div>
+                            <input type="radio" name="add-modal-design-type" id="add-modal-design-type-mix" value="Mix" class="hidden peer" checked>
+                            <label for="add-modal-design-type-mix" class="px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary">Mix Design</label>
+                        </div>
+                        <div>
+                            <input type="radio" name="add-modal-design-type" id="add-modal-design-type-individual" value="Individual" class="hidden peer">
+                            <label for="add-modal-design-type-individual" class="px-4 py-2 rounded-lg border-2 border-gray-300 cursor-pointer peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary">Individual</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mix Design Options -->
+                <div id="add-modal-mix-options">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-semibold mb-2">Select Colors</label>
+                        <div id="add-modal-mix-colors" class="flex flex-wrap gap-2">
+                            <!-- Colors injected here -->
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="add-modal-mix-quantity" class="block text-gray-700 font-semibold mb-2">Total Quantity</label>
+                        <input type="number" id="add-modal-mix-quantity" min="1" value="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Individual Design Options -->
+                <div id="add-modal-individual-options" class="hidden">
+                     <div class="mb-4">
+                        <label class="block text-gray-700 font-semibold mb-2">Enter Quantity for Each Color</label>
+                        <div id="add-modal-individual-colors" class="space-y-2">
+                            <!-- Color quantities injected here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button type="button" id="cancel-add-modal-button" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition">Cancel</button>
+                    <button type="submit" class="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition">Add to Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 </body>
 </html>
