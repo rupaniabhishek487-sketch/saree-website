@@ -17,6 +17,15 @@
         }
       }
     </script>
+    <style>
+        .image-carousel .carousel-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .image-carousel:hover .carousel-btn {
+            opacity: 1;
+        }
+    </style>
     <script type="module">
         // IMPORTANT: Make sure you use the ES Module version of the Supabase client
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -24,11 +33,14 @@
         // --- CONFIGURATION ---
         const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co'; 
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
+        
+        // This key allows the admin panel to bypass security policies to manage products and staff.
+        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjU1MjYzNywiZXhwIjoyMDcyMTI4NjM3fQ.QpFzPiItqFoIB9g4aVg3wr4cjkzkVliy-0RUdSuGSoU';
 
         // The email address for display purposes. Login is password-only.
         const ADMIN_EMAIL = 'rupaniabhishek487@gmail.com'; 
         // The password for the admin panel.
-        const ADMIN_PASSWORD = 'sareeadmin2025';
+        let ADMIN_PASSWORD = 'sareeadmin2025';
         // --- END CONFIGURATION ---
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -66,9 +78,15 @@
         const addStaffForm = document.getElementById('add-staff-form');
         const staffMessage = document.getElementById('staff-message');
         const staffListContainer = document.getElementById('staff-list-container');
+        const changePasswordForm = document.getElementById('change-password-form');
+        const changePasswordMessage = document.getElementById('change-password-message');
         
         // Staff view elements
+        const staffTabs = document.querySelectorAll('.staff-tab');
+        const staffPanels = document.querySelectorAll('.staff-panel');
         const staffProductGrid = document.getElementById('staff-product-grid');
+        const staffSearchInput = document.getElementById('staff-search-input');
+        const myOrdersContent = document.getElementById('my-orders-content');
         const currentOrderPartyName = document.getElementById('current-order-party-name');
         const currentOrderItems = document.getElementById('current-order-items');
         const currentOrderNotes = document.getElementById('current-order-notes');
@@ -81,11 +99,12 @@
         let products = [];
         let currentOrder = {
             partyName: '',
-            items: [],
+            items: [], // Will store {product, quantity, selected_colors, designType}
             notes: '',
             total: 0
         };
         let loginRole = 'staff';
+        const ORDER_STATUSES = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
         // --- HELPER FUNCTIONS ---
         function showView(viewId) {
@@ -96,6 +115,18 @@
         function formatCurrency(amount) {
             return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
         }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'Completed': return 'bg-green-100 text-green-800';
+                case 'Processing': return 'bg-blue-100 text-blue-800';
+                case 'Cancelled': return 'bg-red-100 text-red-800';
+                case 'Pending':
+                default:
+                    return 'bg-yellow-100 text-yellow-800';
+            }
+        }
+
 
         // --- AUTHENTICATION ---
         async function handleLogin(e) {
@@ -120,7 +151,6 @@
                 return;
             }
             
-            // --- Staff Login Logic ---
             const email = loginEmailInput.value;
              if (email === ADMIN_EMAIL) {
                 loginMessage.textContent = 'Error: Please use the Admin login for this email.';
@@ -180,16 +210,9 @@
                 userDisplay.textContent = `Logged in as: ${currentUser.email}`;
                 logoutButton.classList.remove('hidden');
                 
-                if (currentUser.email === ADMIN_EMAIL) {
-                    // This case is a fallback, but primary admin login is password-only.
-                    appTitle.textContent = 'Admin Panel';
-                    await initializeAdminView();
-                    showView('admin-view');
-                } else {
-                    appTitle.textContent = 'Staff Ordering Panel';
-                    await initializeStaffView();
-                    showView('staff-view');
-                }
+                appTitle.textContent = 'Staff Ordering Panel';
+                await initializeStaffView();
+                showView('staff-view');
             } else {
                 showView('login-view');
             }
@@ -199,6 +222,9 @@
         
         // --- ADMIN PANEL ---
         async function initializeAdminView() {
+            if (SUPABASE_SERVICE_KEY === 'PASTE_YOUR_SERVICE_ROLE_KEY_HERE') {
+                alert('CRITICAL: Admin functions are disabled. Please paste your Supabase Service Role Key in the index.html file to enable them.');
+            }
             await fetchProducts(true);
             renderProductTable();
             await renderOrderDashboard();
@@ -206,9 +232,17 @@
         }
 
         async function fetchProducts(isAdmin = false) {
-            // Admin gets all columns, staff gets limited columns for security
             const columns = isAdmin ? '*' : 'id, unique_number, name, rate, image_url, color, description';
-            const { data, error } = await supabase.from('products').select(columns).order('unique_number', { ascending: true });
+            
+            let queryBuilder;
+            if (isAdmin) {
+                const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+                queryBuilder = adminSupabase.from('products');
+            } else {
+                queryBuilder = supabase.from('products');
+            }
+
+            const { data, error } = await queryBuilder.select(columns).order('unique_number', { ascending: true });
             
             if (error) {
                 console.error('Error fetching products:', error);
@@ -243,11 +277,16 @@
         
         async function renderOrderDashboard() {
             orderDashboardContent.innerHTML = '<div class="text-center p-8"><p>Loading orders...</p></div>';
-            const { data: orders, error } = await supabase
+            
+            const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const { data: orders, error } = await adminSupabase
                 .from('orders')
                 .select(`
-                    *,
+                    id, created_at, party_name, total_amount, notes, status,
                     order_items (
+                        quantity,
+                        selected_color,
+                        design_type,
                         products (*)
                     ),
                     profiles (email)
@@ -265,52 +304,56 @@
                 return;
             }
 
-            const ordersByParty = orders.reduce((acc, order) => {
-                const party = order.party_name;
-                if (!acc[party]) {
-                    acc[party] = { items: [], total: 0, notes: [] };
-                }
-                order.order_items.forEach(item => {
-                    if(item.products) {
-                       acc[party].items.push(item.products);
-                       acc[party].total += item.products.rate;
-                    }
-                });
-                if(order.notes) acc[party].notes.push(order.notes);
-                return acc;
-            }, {});
-
             let html = '';
-            for (const partyName in ordersByParty) {
-                const partyData = ordersByParty[partyName];
+            for (const order of orders) {
+                const totalQuantity = order.order_items.reduce((sum, item) => sum + item.quantity, 0);
+                const statusColor = getStatusColor(order.status);
+
                 html += `
                     <div class="bg-white p-4 md:p-6 rounded-lg shadow-md mb-6">
-                        <div class="md:flex justify-between items-center mb-4">
-                            <h3 class="text-xl md:text-2xl font-bold text-gray-800">${partyName}</h3>
+                        <div class="md:flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-xl md:text-2xl font-bold text-gray-800">${order.party_name}</h3>
+                                <p class="text-sm text-gray-500">Order Placed: ${new Date(order.created_at).toLocaleString()}</p>
+                                <p class="text-sm text-gray-500">By: ${order.profiles ? order.profiles.email : 'Unknown Staff'}</p>
+                            </div>
                             <div class="text-left md:text-right mt-2 md:mt-0">
-                                <p class="text-lg md:text-xl font-semibold text-green-600">Total Sale: ${formatCurrency(partyData.total)}</p>
-                                <p class="text-md font-semibold text-gray-600">Total Sarees: ${partyData.items.length}</p>
+                                <p class="text-lg md:text-xl font-semibold text-green-600">Total Sale: ${formatCurrency(order.total_amount)}</p>
+                                <p class="text-md font-semibold text-gray-600">Total Sarees: ${totalQuantity}</p>
                             </div>
                         </div>
                         
+                         <div class="flex flex-col md:flex-row justify-between md:items-center bg-gray-50 p-3 rounded mb-4">
+                            <div>
+                                <span class="font-bold text-gray-700">Status:</span>
+                                <span class="status-badge text-sm font-medium px-2.5 py-0.5 rounded ${statusColor}">${order.status}</span>
+                            </div>
+                            <div class="mt-2 md:mt-0">
+                                <select data-order-id="${order.id}" class="order-status-select bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full md:w-auto p-2">
+                                    ${ORDER_STATUSES.map(s => `<option value="${s}" ${s === order.status ? 'selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="mt-4 bg-gray-50 p-3 rounded">
                             <h4 class="font-bold text-gray-700">Notes:</h4>
-                            <ul class="list-disc pl-5 text-gray-600 text-sm">
-                                ${partyData.notes.filter(n => n).map(note => `<li>${note}</li>`).join('') || '<li>No notes.</li>'}
-                            </ul>
+                            <p class="text-gray-600 text-sm">${order.notes || 'No notes.'}</p>
                         </div>
 
                         <div class="mt-4">
                             <h4 class="font-bold text-gray-700 mb-2">Items Ordered:</h4>
-                            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-4">
-                                ${partyData.items.map(item => {
-                                    const itemImage = item.image_url ? item.image_url.split(',')[0].trim() : 'https://placehold.co/100x100/eee/ccc?text=No+Image';
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+                                ${order.order_items.map(item => {
+                                    if (!item.products) return '';
+                                    const itemImage = item.products.image_url ? item.products.image_url.split(',')[0].trim() : 'https://placehold.co/100x100/eee/ccc?text=No+Image';
                                     return `
-                                    <div class="border p-2 rounded-lg text-center bg-gray-50 hover:shadow-lg transition">
+                                    <div class="border p-2 rounded-lg text-center bg-white hover:shadow-lg transition">
                                         <img src="${itemImage}" class="w-full h-20 md:h-28 object-cover rounded-md mx-auto shadow-sm">
-                                        <p class="text-xs md:text-sm font-semibold mt-2 truncate">${item.name}</p>
-                                        <p class="text-xs text-gray-500">#${item.unique_number}</p>
-                                        <p class="text-xs md:text-sm font-bold text-indigo-600">${formatCurrency(item.rate)}</p>
+                                        <p class="text-xs md:text-sm font-semibold mt-1 truncate">${item.products.name}</p>
+                                        <p class="text-xs text-gray-500">#${item.products.unique_number}</p>
+                                        <p class="text-xs font-semibold text-gray-600">${item.design_type || 'Mix'}</p>
+                                        <p class="text-xs font-medium text-gray-800 truncate">${item.selected_color || ''}</p>
+                                        <p class="text-xs md:text-sm font-bold text-indigo-600">${item.quantity} x ${formatCurrency(item.products.rate)}</p>
                                     </div>
                                 `}).join('')}
                             </div>
@@ -321,16 +364,33 @@
             orderDashboardContent.innerHTML = html;
         }
 
+        async function handleOrderStatusChange(orderId, newStatus) {
+            const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const { error } = await adminSupabase
+                .from('orders')
+                .update({ status: newStatus })
+                .eq('id', orderId);
+
+            if (error) {
+                console.error("Error updating status:", error);
+                alert('Could not update order status.');
+            } else {
+                // Find the badge and update it visually without a full re-render
+                const selectEl = document.querySelector(`select[data-order-id="${orderId}"]`);
+                const statusBadge = selectEl.closest('.flex').querySelector('.status-badge');
+                statusBadge.textContent = newStatus;
+                statusBadge.className = `status-badge text-sm font-medium px-2.5 py-0.5 rounded ${getStatusColor(newStatus)}`;
+            }
+        }
+
         function openProductModal(product = null) {
             productFormInModal.reset();
             productIdInput.value = '';
 
-            // Clear previous dynamic image inputs
             const dynamicImageInputs = imageUrlsContainer.querySelectorAll('.dynamic-image-input');
             dynamicImageInputs.forEach(input => input.remove());
 
             if (product) {
-                // Editing existing product
                 productModalTitle.textContent = 'Edit Saree';
                 productIdInput.value = product.id;
                 document.getElementById('product-unique_number').value = product.unique_number;
@@ -346,9 +406,7 @@
                 if (urls.length > 1) {
                     urls.slice(1).forEach(url => addImageUrlInput(url));
                 }
-
             } else {
-                // Adding new product
                 productModalTitle.textContent = 'Add New Saree';
                 imageUrlsContainer.querySelector('input[name="image_url"]').value = '';
             }
@@ -360,22 +418,21 @@
             const formData = new FormData(e.target);
             const productData = Object.fromEntries(formData.entries());
 
-            // Handle multiple image URLs
             const imageUrlInputs = productFormInModal.querySelectorAll('input[name="image_url"]');
             const imageUrls = Array.from(imageUrlInputs).map(input => input.value.trim()).filter(url => url);
             productData.image_url = imageUrls.join(',');
             
             const id = productData.id;
             delete productData.id;
-
             productData.rate = parseFloat(productData.rate);
             
+            const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
             let error;
             if (id) {
-                const { error: updateError } = await supabase.from('products').update(productData).eq('id', id);
+                const { error: updateError } = await adminSupabase.from('products').update(productData).eq('id', id);
                 error = updateError;
             } else {
-                const { error: insertError } = await supabase.from('products').insert([productData]);
+                const { error: insertError } = await adminSupabase.from('products').insert([productData]);
                 error = insertError;
             }
 
@@ -390,10 +447,11 @@
         }
         
         async function handleDeleteProduct(id) {
-            if (!confirm('Are you sure you want to delete this saree? This action cannot be undone.')) {
-                return;
-            }
-            const { error } = await supabase.from('products').delete().eq('id', id);
+            if (!confirm('Are you sure you want to delete this saree? This action cannot be undone.')) return;
+            
+            const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const { error } = await adminSupabase.from('products').delete().eq('id', id);
+
             if (error) {
                 console.error('Error deleting product:', error);
                 alert(`Error: ${error.message}`);
@@ -412,36 +470,30 @@
             staffMessage.textContent = 'Registering...';
             staffMessage.className = 'mt-4 text-center font-medium text-gray-600';
 
-            const { data, error } = await supabase.auth.signUp({
+            const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const { data, error } = await adminSupabase.auth.admin.createUser({
                 email,
                 password,
-                options: {
-                    data: {
-                        full_name: name
-                    }
-                }
+                email_confirm: true,
+                user_metadata: { full_name: name }
             });
 
             if (error) {
                 staffMessage.textContent = `Error: ${error.message}`;
                 staffMessage.className = 'mt-4 text-center font-medium text-red-500';
             } else if (data.user) {
-                // This is a workaround to prevent the admin from being logged out.
-                // We immediately sign out the new user's session created by signUp.
-                await supabase.auth.signOut();
-                
                 staffMessage.textContent = 'Staff registered successfully!';
                 staffMessage.className = 'mt-4 text-center font-medium text-green-500';
                 addStaffForm.reset();
-                await fetchAndRenderStaffList(); // Refresh the staff list
+                await fetchAndRenderStaffList();
             }
         }
 
         async function fetchAndRenderStaffList() {
             staffListContainer.innerHTML = '<p>Loading staff...</p>';
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('full_name, email');
+            
+            const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+            const { data, error } = await adminSupabase.from('profiles').select('full_name, email');
 
             if (error) {
                 staffListContainer.innerHTML = '<p class="text-red-500">Could not load staff list.</p>';
@@ -450,7 +502,6 @@
             }
 
             const staffList = data.filter(profile => profile.email !== ADMIN_EMAIL);
-
             if (staffList.length === 0) {
                 staffListContainer.innerHTML = '<p class="text-gray-500">No staff members have been added yet.</p>';
                 return;
@@ -470,36 +521,77 @@
             `;
         }
 
+        function handleChangePassword(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById('new-password').value;
+            if (newPassword.length < 6) {
+                changePasswordMessage.textContent = 'Password must be at least 6 characters long.';
+                changePasswordMessage.className = 'mt-4 text-center font-medium text-red-500';
+                return;
+            }
+            ADMIN_PASSWORD = newPassword; // Temporarily update for the current session
+            changePasswordMessage.innerHTML = `
+                <p class="text-green-600">Password updated for this session!</p>
+                <p class="mt-2 text-sm text-gray-700">For this change to be permanent, please open the <b>index.html</b> file and update the ADMIN_PASSWORD variable like this:</p>
+                <pre class="bg-gray-200 p-2 rounded mt-1 text-xs text-left">let ADMIN_PASSWORD = '${newPassword}';</pre>
+            `;
+            changePasswordMessage.className = 'mt-4 text-center font-medium';
+            changePasswordForm.reset();
+        }
+
 
         // --- STAFF PANEL ---
         async function initializeStaffView() {
             resetOrder();
             await fetchProducts(false);
             renderStaffProductGrid();
+            await fetchAndRenderStaffOrders(); // Fetch orders on initial load
         }
 
-        function renderStaffProductGrid() {
+        function renderStaffProductGrid(filteredProducts = products) {
             staffProductGrid.innerHTML = '';
-             products.forEach(p => {
-                const isAdded = currentOrder.items.some(item => item.id === p.id);
+             filteredProducts.forEach(p => {
+                const isAdded = currentOrder.items.some(item => item.product.id === p.id);
                 const buttonHtml = isAdded
                     ? `<button class="w-full bg-gray-400 text-white font-bold py-2 px-4 rounded-lg mt-2 cursor-not-allowed" disabled>Added</button>`
                     : `<button data-id="${p.id}" class="add-to-order-btn w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-2 px-4 rounded-lg mt-2 hover:from-green-600 hover:to-emerald-700 shadow-lg transform hover:scale-105 transition-all duration-200">Add to Order</button>`;
                 
-                const firstImage = p.image_url ? p.image_url.split(',')[0].trim() : 'https://placehold.co/400x400/eee/ccc?text=No+Image';
+                const imageUrls = p.image_url ? p.image_url.split(',').map(url => url.trim()).filter(url => url) : ['https://placehold.co/400x400/eee/ccc?text=No+Image'];
+
+                const imageCarouselHtml = `
+                    <div class="relative w-full h-52 mb-3 image-carousel bg-gray-100 rounded-lg" data-product-id="${p.id}" data-images='${JSON.stringify(imageUrls)}' data-current-index="0">
+                        <img src="${imageUrls[0]}" alt="${p.name}" class="w-full h-full object-contain rounded-lg">
+                        ${imageUrls.length > 1 ? `
+                            <button class="carousel-btn absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" data-direction="-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <button class="carousel-btn absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" data-direction="1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                            <div class="image-count-indicator absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">1 / ${imageUrls.length}</div>
+                        ` : ''}
+                    </div>
+                `;
 
                 const card = `
-                    <div class="border rounded-xl p-4 shadow-lg bg-white transition-transform transform hover:-translate-y-1 duration-300 flex flex-col">
-                        <img src="${firstImage}" alt="${p.name}" class="w-full h-52 object-cover rounded-lg mb-3 shadow-md">
+                    <div id="product-card-${p.id}" class="border rounded-xl p-4 shadow-lg bg-white transition-transform transform hover:-translate-y-1 duration-300 flex flex-col">
+                        ${imageCarouselHtml}
                         <div class="flex-grow">
                             <h3 class="font-bold text-lg text-gray-800">${p.name}</h3>
                             <div class="flex justify-between items-center text-sm text-gray-500 mt-1">
                               <span>#${p.unique_number}</span>
                             </div>
-                            <div class="flex flex-wrap gap-1 mt-2">
-                                ${p.color.split(',').map(c => `<span class="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">${c.trim()}</span>`).join('')}
+                            <div class="mt-2">
+                                <p class="text-sm font-semibold mb-1">Select Color(s):</p>
+                                <div class="flex flex-wrap gap-2">
+                                    ${p.color.split(',').map(c => `
+                                        <div>
+                                            <input type="checkbox" name="color-${p.id}" id="color-${p.id}-${c.trim()}" value="${c.trim()}" class="hidden peer">
+                                            <label for="color-${p.id}-${c.trim()}" class="text-xs font-semibold text-gray-700 px-3 py-1 rounded-full border-2 border-gray-300 cursor-pointer peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition">${c.trim()}</label>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
-                            <p class="text-sm text-gray-600 mt-2">${p.description || ''}</p>
                         </div>
                         <div class="mt-auto pt-2">
                           <p class="font-semibold text-2xl text-primary mt-2">${formatCurrency(p.rate)}</p>
@@ -509,6 +601,50 @@
                 `;
                 staffProductGrid.insertAdjacentHTML('beforeend', card);
             });
+        }
+
+        async function fetchAndRenderStaffOrders() {
+            if (!currentUser) return;
+            myOrdersContent.innerHTML = '<p>Loading your orders...</p>';
+
+            const { data: orders, error } = await supabase
+                .from('orders')
+                .select(`
+                    id, created_at, party_name, total_amount, status,
+                    order_items ( products (name, unique_number) )
+                `)
+                .eq('staff_id', currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                myOrdersContent.innerHTML = `<p class="text-red-500">Could not load orders: ${error.message}</p>`;
+                return;
+            }
+
+            if (orders.length === 0) {
+                myOrdersContent.innerHTML = '<p class="text-gray-500">You have not placed any orders yet.</p>';
+                return;
+            }
+
+            myOrdersContent.innerHTML = orders.map(order => {
+                const statusColor = getStatusColor(order.status);
+                const productSummary = order.order_items.map(oi => `${oi.products.name} (#${oi.products.unique_number})`).join(', ');
+                return `
+                    <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-lg text-gray-800">${order.party_name}</p>
+                                <p class="text-sm text-gray-500">${new Date(order.created_at).toLocaleString()}</p>
+                                <p class="text-sm text-gray-600 mt-2"><strong>Items:</strong> ${productSummary}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-semibold text-primary">${formatCurrency(order.total_amount)}</p>
+                                <span class="text-xs font-medium px-2.5 py-0.5 rounded mt-2 inline-block ${statusColor}">${order.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                `
+            }).join('');
         }
         
         function handleAddToOrder(productId) {
@@ -528,18 +664,41 @@
             }
             currentOrder.partyName = partyName;
 
+            const selectedColorInputs = document.querySelectorAll(`input[name="color-${productId}"]:checked`);
+            if (selectedColorInputs.length === 0) {
+                alert('Please select at least one color for the saree.');
+                return;
+            }
+            const selectedColors = Array.from(selectedColorInputs).map(input => input.value);
+
             const product = products.find(p => p.id === productId);
             if (product) {
-                currentOrder.items.push(product);
+                currentOrder.items.push({ product, quantity: 1, selected_colors: selectedColors, designType: 'Mix' });
                 updateCurrentOrderDisplay();
-                renderStaffProductGrid();
+                renderStaffProductGrid(products.filter(p => p.unique_number.toString().includes(staffSearchInput.value)));
             }
         }
         
         function handleRemoveFromOrder(productId) {
-            currentOrder.items = currentOrder.items.filter(item => item.id !== productId);
+            currentOrder.items = currentOrder.items.filter(item => item.product.id !== productId);
             updateCurrentOrderDisplay();
-            renderStaffProductGrid();
+            renderStaffProductGrid(products.filter(p => p.unique_number.toString().includes(staffSearchInput.value)));
+        }
+
+        function handleQuantityChange(productId, newQuantity) {
+            const item = currentOrder.items.find(i => i.product.id === productId);
+            if (item) {
+                item.quantity = Math.max(1, newQuantity); // Ensure quantity is at least 1
+            }
+            updateCurrentOrderDisplay();
+        }
+
+        function handleDesignTypeChange(productId, newDesignType) {
+            const item = currentOrder.items.find(i => i.product.id === productId);
+            if (item) {
+                item.designType = newDesignType;
+            }
+            updateCurrentOrderDisplay();
         }
 
         function updateCurrentOrderDisplay() {
@@ -549,14 +708,33 @@
                 currentOrderItems.innerHTML = '<p class="text-gray-500 text-center py-4">No items added yet.</p>';
             } else {
                  currentOrder.items.forEach(item => {
-                    total += item.rate;
+                    total += item.product.rate * item.quantity;
                     const itemHtml = `
-                        <li class="flex justify-between items-center py-3 border-b border-gray-200">
-                            <div>
-                                <p class="font-semibold text-gray-800">${item.name} (#${item.unique_number})</p>
-                                <p class="text-sm text-gray-600">${formatCurrency(item.rate)}</p>
+                        <li class="py-3 border-b border-gray-200">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-semibold text-gray-800">${item.product.name} (#${item.product.unique_number})</p>
+                                    <p class="text-sm text-gray-500 font-medium">${item.selected_colors.join(', ')}</p>
+                                    <p class="text-sm text-gray-600">${formatCurrency(item.product.rate)}</p>
+                                </div>
+                                <button data-id="${item.product.id}" class="remove-from-order-btn text-red-500 hover:text-red-700 font-bold text-xl flex-shrink-0">&times;</button>
                             </div>
-                            <button data-id="${item.id}" class="remove-from-order-btn text-red-500 hover:text-red-700 font-bold text-xl">&times;</button>
+                            <div class="flex items-center justify-between mt-2">
+                                <div class="flex gap-2 text-xs">
+                                    <div>
+                                        <input type="radio" name="item-design-${item.product.id}" id="item-design-mix-${item.product.id}" value="Mix" class="hidden peer" ${item.designType === 'Mix' ? 'checked' : ''} data-id="${item.product.id}">
+                                        <label for="item-design-mix-${item.product.id}" class="px-2 py-1 rounded-md border cursor-pointer peer-checked:bg-gray-200">Mix</label>
+                                    </div>
+                                    <div>
+                                        <input type="radio" name="item-design-${item.product.id}" id="item-design-ind-${item.product.id}" value="Individual" class="hidden peer" ${item.designType === 'Individual' ? 'checked' : ''} data-id="${item.product.id}">
+                                        <label for="item-design-ind-${item.product.id}" class="px-2 py-1 rounded-md border cursor-pointer peer-checked:bg-gray-200">Individual</label>
+                                    </div>
+                                </div>
+                                <div class="flex items-center">
+                                    <label for="qty-${item.product.id}" class="text-sm mr-2">Qty:</label>
+                                    <input type="number" id="qty-${item.product.id}" data-id="${item.product.id}" class="quantity-input w-16 text-center border border-gray-300 rounded-md" value="${item.quantity}" min="1">
+                                </div>
+                            </div>
                         </li>
                     `;
                     currentOrderItems.insertAdjacentHTML('beforeend', itemHtml);
@@ -575,7 +753,7 @@
             submitOrderButton.disabled = true;
             submitOrderButton.textContent = 'Submitting...';
             orderMessage.textContent = '';
-
+            
             const { data: orderData, error: orderError } = await supabase
                 .from('orders')
                 .insert({
@@ -598,7 +776,10 @@
             
             const orderItemsData = currentOrder.items.map(item => ({
                 order_id: orderData.id,
-                product_id: item.id
+                product_id: item.product.id,
+                quantity: item.quantity,
+                selected_color: item.selected_colors.join(', '),
+                design_type: item.designType
             }));
             
             const { error: itemsError } = await supabase.from('order_items').insert(orderItemsData);
@@ -613,6 +794,7 @@
                 orderMessage.className = 'mt-4 text-center font-semibold text-green-500';
                 resetOrder();
                 renderStaffProductGrid();
+                await fetchAndRenderStaffOrders(); // Refresh order history
             }
 
             setTimeout(() => { orderMessage.textContent = '' }, 5000);
@@ -624,6 +806,7 @@
             currentOrder = { partyName: '', items: [], notes: '', total: 0 };
             currentOrderPartyName.value = '';
             currentOrderNotes.value = '';
+            staffSearchInput.value = '';
             updateCurrentOrderDisplay();
         }
 
@@ -708,6 +891,7 @@
             cancelModalButton.addEventListener('click', () => productModal.classList.add('hidden'));
             productFormInModal.addEventListener('submit', handleProductFormSubmit);
             addStaffForm.addEventListener('submit', handleStaffRegistration);
+            changePasswordForm.addEventListener('submit', handleChangePassword);
             
             productTableBody.addEventListener('click', e => {
                 if (e.target.closest('.edit-product-btn')) {
@@ -721,11 +905,52 @@
                 }
             });
 
+            orderDashboardContent.addEventListener('change', e => {
+                if(e.target.classList.contains('order-status-select')) {
+                    const orderId = e.target.dataset.orderId;
+                    const newStatus = e.target.value;
+                    handleOrderStatusChange(orderId, newStatus);
+                }
+            });
+
             // Staff listeners
+            staffTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    staffTabs.forEach(t => t.classList.remove('border-primary', 'text-primary'));
+                    tab.classList.add('border-primary', 'text-primary');
+                    staffPanels.forEach(panel => panel.classList.add('hidden'));
+                    document.getElementById(tab.dataset.target).classList.remove('hidden');
+
+                    if (tab.dataset.target === 'my-orders-panel') {
+                        fetchAndRenderStaffOrders();
+                    }
+                });
+            });
+
+
+            staffSearchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filtered = products.filter(p => p.unique_number.toString().toLowerCase().includes(searchTerm));
+                renderStaffProductGrid(filtered);
+            });
+
             staffProductGrid.addEventListener('click', e => {
                 if (e.target.closest('.add-to-order-btn')) {
                     const id = parseInt(e.target.closest('.add-to-order-btn').dataset.id);
                     handleAddToOrder(id);
+                }
+                if (e.target.closest('.carousel-btn')) {
+                    const button = e.target.closest('.carousel-btn');
+                    const carousel = button.closest('.image-carousel');
+                    const images = JSON.parse(carousel.dataset.images);
+                    let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
+                    const direction = parseInt(button.dataset.direction, 10);
+
+                    currentIndex = (currentIndex + direction + images.length) % images.length;
+                    
+                    carousel.querySelector('img').src = images[currentIndex];
+                    carousel.dataset.currentIndex = currentIndex;
+                    carousel.querySelector('.image-count-indicator').textContent = `${currentIndex + 1} / ${images.length}`;
                 }
             });
             
@@ -736,9 +961,22 @@
                 }
             });
 
+            currentOrderItems.addEventListener('change', e => {
+                if (e.target.classList.contains('quantity-input')) {
+                    const id = parseInt(e.target.dataset.id);
+                    const newQuantity = parseInt(e.target.value, 10);
+                    handleQuantityChange(id, newQuantity);
+                }
+                if (e.target.name.startsWith('item-design-')) {
+                    const id = parseInt(e.target.dataset.id);
+                    const newDesignType = e.target.value;
+                    handleDesignTypeChange(id, newDesignType);
+                }
+            });
+
             submitOrderButton.addEventListener('click', handleSubmitOrder);
 
-            populateLoginFormFromStorage(); // Populate on initial load for default role
+            populateLoginFormFromStorage();
             checkUserSession();
         });
 
@@ -797,11 +1035,12 @@
                     <button data-target="order-dashboard" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-primary text-primary">Order Dashboard</button>
                     <button data-target="product-management" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Manage Sarees</button>
                     <button data-target="staff-management" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Manage Staff</button>
+                    <button data-target="settings" class="admin-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Settings</button>
                 </nav>
             </div>
             
             <div id="order-dashboard" class="admin-panel mt-6">
-                <h2 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800">Party-wise Order Summary</h2>
+                <h2 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800">All Orders</h2>
                 <div id="order-dashboard-content"></div>
             </div>
 
@@ -860,6 +1099,21 @@
                     </div>
                 </div>
             </div>
+
+            <div id="settings" class="admin-panel mt-6 hidden">
+                <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800">Change Admin Password</h3>
+                    <p class="text-sm text-gray-600 mb-4">Because this is a secure, file-based application, you must change the password directly in the code. This form will help you do that.</p>
+                    <form id="change-password-form">
+                        <div class="mb-4">
+                            <label for="new-password" class="block text-gray-700 mb-1">New Password</label>
+                            <input type="password" id="new-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" required>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition">Update Password</button>
+                        <div id="change-password-message" class="mt-4 text-center font-medium"></div>
+                    </form>
+                </div>
+            </div>
         </div>
         
         <!-- Product Modal -->
@@ -914,43 +1168,61 @@
         </div>
 
         <!-- Staff View -->
-        <div id="staff-view" class="hidden bg-indigo-50 p-2 md:p-6 rounded-xl">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Product Grid -->
-                <div class="lg:col-span-2">
-                     <h2 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800">Available Sarees</h2>
-                     <div id="staff-product-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                        <!-- Product cards will be injected here -->
-                     </div>
-                </div>
+        <div id="staff-view" class="hidden">
+             <div class="border-b border-gray-200 bg-white rounded-t-lg p-2 mb-4">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button data-target="new-order-panel" class="staff-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-primary text-primary">New Order</button>
+                    <button data-target="my-orders-panel" class="staff-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">My Orders</button>
+                </nav>
+            </div>
 
-                <!-- Current Order -->
-                <div class="lg:sticky lg:top-24 h-fit">
-                    <div class="bg-white p-4 md:p-6 rounded-xl shadow-2xl">
-                        <h2 class="text-2xl font-bold mb-4 text-gray-800">Current Order</h2>
+            <div id="new-order-panel" class="staff-panel bg-indigo-50 p-2 md:p-6 rounded-xl">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Product Grid -->
+                    <div class="lg:col-span-2">
                         <div class="mb-4">
-                            <label for="current-order-party-name" class="block text-gray-700 font-semibold mb-1">Party Name</label>
-                            <input type="text" id="current-order-party-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter party or client name">
+                            <input type="search" id="staff-search-input" placeholder="Search by Unique Code..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
                         </div>
-                        <div class="mb-4">
-                            <h3 class="font-semibold mb-2 text-gray-800">Items</h3>
-                            <ul id="current-order-items" class="max-h-60 overflow-y-auto pr-2">
-                               <p class="text-gray-500 text-center py-4">No items added yet.</p>
-                            </ul>
+                        <div id="staff-product-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                            <!-- Product cards will be injected here -->
                         </div>
-                        <div class="border-t-2 border-dashed pt-4 mb-4">
-                            <div class="flex justify-between items-center text-xl font-bold text-gray-800">
-                                <span>Total:</span>
-                                <span id="current-order-total" class="text-primary">₹0.00</span>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                             <label for="current-order-notes" class="block text-gray-700 font-semibold mb-1">Notes</label>
-                             <textarea id="current-order-notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Add any special requests..."></textarea>
-                        </div>
-                        <button id="submit-order-button" class="w-full bg-gradient-to-r from-primary to-indigo-600 text-white py-3 rounded-lg text-lg font-bold hover:from-indigo-600 hover:to-indigo-700 shadow-xl transform hover:scale-105 transition-all duration-300">Submit Order</button>
-                        <p id="order-message" class="mt-4 text-center font-semibold"></p>
                     </div>
+
+                    <!-- Current Order -->
+                    <div class="lg:sticky lg:top-24 h-fit">
+                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-2xl">
+                            <h2 class="text-2xl font-bold mb-4 text-gray-800">Current Order</h2>
+                            <div class="mb-4">
+                                <label for="current-order-party-name" class="block text-gray-700 font-semibold mb-1">Party Name</label>
+                                <input type="text" id="current-order-party-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary" placeholder="Enter party or client name">
+                            </div>
+                            <div class="mb-4">
+                                <h3 class="font-semibold mb-2 text-gray-800">Items</h3>
+                                <ul id="current-order-items" class="max-h-60 overflow-y-auto pr-2">
+                                <p class="text-gray-500 text-center py-4">No items added yet.</p>
+                                </ul>
+                            </div>
+                            <div class="border-t-2 border-dashed pt-4 mb-4">
+                                <div class="flex justify-between items-center text-xl font-bold text-gray-800">
+                                    <span>Total:</span>
+                                    <span id="current-order-total" class="text-primary">₹0.00</span>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="current-order-notes" class="block text-gray-700 font-semibold mb-1">Notes</label>
+                                <textarea id="current-order-notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Add any special requests..."></textarea>
+                            </div>
+                            <button id="submit-order-button" class="w-full bg-gradient-to-r from-primary to-indigo-600 text-white py-3 rounded-lg text-lg font-bold hover:from-indigo-600 hover:to-indigo-700 shadow-xl transform hover:scale-105 transition-all duration-300">Submit Order</button>
+                            <p id="order-message" class="mt-4 text-center font-semibold"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="my-orders-panel" class="staff-panel hidden">
+                <h2 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800">My Order History</h2>
+                <div id="my-orders-content">
+                    <!-- Staff orders will be rendered here -->
                 </div>
             </div>
         </div>
