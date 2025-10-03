@@ -18,13 +18,7 @@
       }
     </script>
     <style>
-        .image-carousel .carousel-btn {
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
-        }
-        .image-carousel:hover .carousel-btn {
-            opacity: 1;
-        }
+        /* Minimal styles can be added here if needed */
     </style>
     <script type="module">
         // IMPORTANT: Make sure you use the ES Module version of the Supabase client
@@ -32,7 +26,7 @@
         
         // --- CONFIGURATION ---
         const SUPABASE_URL = 'https://omuwfgyeqjenreojqtbw.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfFhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI2MzcsImV4cCI6MjA3MjEyODYzN30.EtKzbfhrcaHfaaIbrVloRU95FncyrAEAogMhAX4csA';
         
         // This key allows the admin panel to bypass security policies to manage products and staff.
         const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9tdXdmZ3llcWplbnJlb2pxdGJ3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjU1MjYzNywiZXhwIjoyMDcyMTI4NjM3fQ.QpFzPiItqFoIB9g4aVg3wr4cjkzkVliy-0RUdSuGSoU';
@@ -571,12 +565,6 @@
                     <div class="relative w-full h-52 mb-3 image-carousel bg-gray-100 rounded-lg" data-product-id="${p.id}" data-images='${JSON.stringify(imageUrls)}' data-current-index="0">
                         <img src="${imageUrls[0]}" alt="${p.name}" class="w-full h-full object-contain rounded-lg">
                         ${imageUrls.length > 1 ? `
-                            <button class="carousel-btn absolute top-1/2 left-2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" data-direction="-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                            </button>
-                            <button class="carousel-btn absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white rounded-full p-2" data-direction="1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                            </button>
                             <div class="image-count-indicator absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded-full">1 / ${imageUrls.length}</div>
                         ` : ''}
                     </div>
